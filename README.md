@@ -4,15 +4,22 @@ NASA USLI Payload "Forge" for Vulcan I | JMU 2024-2025 Season
 # Relevent Requirements
 4.2. STEMCRaFT Mission Requirements:
 
-  4.2.1. Teams shall choose a minimum of 3 pieces of data from the below list to a maximum of 8 to
-  transmit to the NASA receiver.
+     4.2.1. Teams shall choose a minimum of 3 pieces of data from the below list to a maximum of 8 to a transmit to the NASA receiver.
+  
     • Time of landing
+
     • Maximum velocity
+    
     • Landing velocity, G-forces sustained
+    
     • Calculated STEMnaut crew survivability
+    
     • Temperature of landing site
+    
     • Apogee reached
+    
     • Battery check/power status
+    
     • Orientation of on-board STEMnauts
 
 4.2.3. Payload shall transmit on the 2-M band. A specific frequency shall be given to the teams later.
