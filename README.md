@@ -1,6 +1,6 @@
 
 ## JMU NASA USLI
-![Logo](https://drive.google.com/file/d/1-lE5s11LVOGq-6z22vi4CUCD0r-xJeZR/view?usp=drive_link)
+![Logo]([https://drive.google.com/file/d/1-lE5s11LVOGq-6z22vi4CUCD0r-xJeZR/view?usp=drive_link](https://drive.google.com/uc?id=1-lE5s11LVOGq-6z22vi4CUCD0r-xJeZR))
 
 
 ## Forge
