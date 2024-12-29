@@ -27,32 +27,32 @@ Class Forge()
   //mode
   bool NoRadio = true;
   // reqs from handbook
-	float Temperature = 0.0;
-	float Apogee = 0.0;
-	bool BatteryStatus = true;
-	float Orientation_W = 0.0;//-|
+  float Temperature = 0.0;
+  float Apogee = 0.0;
+  bool BatteryStatus = true;
+  float Orientation_W = 0.0;//-|
   float Orientation_X = 0.0;// |
   float Orientation_Y = 0.0;// | orientation in quaternions
   float Orientation_Z = 0.0;//-|
-	String LandingTime = "";
-	float MaxVelocity = 0.0;
-	float LandingVelocity = 0.0;
+  String LandingTime = "";
+  float MaxVelocity = 0.0;
+  float LandingVelocity = 0.0;
   float MaxGForce = 0.0;	
-	int SurvivalChance = 0;	
+  int SurvivalChance = 0;	
   //helper values
   float LandingTimeFloat  = 0.0; //in secconds based on landing time
   float Velocity = 0.0;
   float GForce = 0.0;
-	float Altitude = 0.0;
-	float OldAltitude = 0.0;
-	float frequency = 20; //data points per sec for high-g accelerometer
-	CircularBuffer<float, frequency *3> accels;
+  float Altitude = 0.0;
+  float OldAltitude = 0.0;
+  float frequency = 20; //data points per sec for high-g accelerometer
+  CircularBuffer<float, frequency *3> accels;
   Adafruit_BNO055 bno55 = Adafruit_BNO055(55);
   imu::Quaternion quat = bno.getQuat();
   Adafruit_ADXL375 adxl = Adafruit_ADXL375(375);
   imu::Vector<3> Acceleration = adxl.getVector(Adafruit_ADXL375::VECTOR_ACCELEROMETER);
 
-  //******************************  APRS CONFIG **********************************// from https://github.com/lightaprs/LightAPRS-2.0/blob/main/LightAPRS-2-vehicle/LightAPRS-2-vehicle.ino
+  //******************************  APRS CONFIG ********************************** // from https://github.com/lightaprs/LightAPRS-2.0/blob/main/LightAPRS-2-vehicle/LightAPRS-2-vehicle.ino
   char    CallSign[7]="NOCALL"; //DO NOT FORGET TO CHANGE YOUR CALLSIGN
   int8_t  CallNumber=9;//SSID http://www.aprs.org/aprs11/SSIDs.txt
   char    Symbol='>'; // 'O' for balloon, '>' for car, for more info : http://www.aprs.org/symbols/symbols-new.txt
@@ -62,7 +62,7 @@ Class Forge()
 
   char    comment[50] = "Sending payload data for NASA USLI"; // Max 50 char but shorter is better.
   char    StatusMessage[50] = "GO DUKES";
-//*****************************************************************************
+  //*****************************************************************************
 
 
 
