@@ -11,6 +11,7 @@
 #include <ZeroAPRS.h>                       //https://github.com/hakkican/ZeroAPRS
 #include <SparkFun_Ublox_Arduino_Library.h> //https://github.com/sparkfun/SparkFun_Ublox_Arduino_Library
 #include <Adafruit_BMP085.h>                //https://github.com/adafruit/Adafruit-BMP085-Library
+#include <CircularBuffer.hpp>               //https://github.com/rlogiacco/CircularBuffer
 
 
 Class Forge()
@@ -29,7 +30,10 @@ Class Forge()
 	float Temperature = 0.0;
 	float Apogee = 0.0;
 	bool BatteryStatus = true;
-	float Orientation = 0.0;
+	float Orientation_W = 0.0;//-|
+  float Orientation_X = 0.0;// |
+  float Orientation_Y = 0.0;// | orientation in quaternions
+  float Orientation_Z = 0.0;//-|
 	String LandingTime = "";
 	float MaxVelocity = 0.0;
 	float LandingVelocity = 0.0;
@@ -42,11 +46,11 @@ Class Forge()
 	float Altitude = 0.0;
 	float OldAltitude = 0.0;
 	float frequency = 20; //data points per sec for high-g accelerometer
-	CircularBuffer<float, frequency *3> accels //https://github.com/rlogiacco/CircularBuffer
-  
-  Adafruit_BNO055 bno = Adafruit_BNO055(55);
-  HighGIMUNAME_HighG HighGIMU = HighGIMU(yes);
-  imu::Vector<3> Acceleration = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
+	CircularBuffer<float, frequency *3> accels;
+  Adafruit_BNO055 bno55 = Adafruit_BNO055(55);
+  imu::Quaternion quat = bno.getQuat();
+  Adafruit_ADXL375 adxl = Adafruit_ADXL375(375);
+  imu::Vector<3> Acceleration = adxl.getVector(Adafruit_ADXL375::VECTOR_ACCELEROMETER);
 
   //******************************  APRS CONFIG **********************************// from https://github.com/lightaprs/LightAPRS-2.0/blob/main/LightAPRS-2-vehicle/LightAPRS-2-vehicle.ino
   char    CallSign[7]="NOCALL"; //DO NOT FORGET TO CHANGE YOUR CALLSIGN
@@ -103,7 +107,7 @@ Class Forge()
   void getAltitude() //moves curent altitude to OldAltitude than gets new value from hardware
   {
     OldAltitude = Altitude
-    Altitude = myGPS.getAltitude();
+    Altitude = bmp.readAltitude();
   }
 
   void getGforce() // gets acceleration from high-g imu and devides by earth's gravity
@@ -163,9 +167,12 @@ Class Forge()
 
 
 
-  void recordOrientation() // gets the orientation from the orientation imu
+  void recordOrientation() // gets the orientation from the orientation imu in quaternions. This is orientation of whole capsule, individual stemNAUTS can be derived based on position.
   {
-  	//Orientation = get degreese values from bno055 but dont know how to portray exactly
+  	Orientation_W = quat.w();
+    Orientation_X = quat.x();
+    Orientation_Y = quat.y();
+    Orientation_Z = quat.z();
   }
 
 
@@ -178,7 +185,29 @@ Class Forge()
 
 	void calculateSurvivalChance()
   {
-	  //SurvivalChance = calculations here;
+	  Lnd_vel = calculateLandingVelocity();
+	  MaxG = getGforce();
+	  String Survival = "";
+    //Landing velocity should always be under 15 because the parachute 
+    //Falls at 3.660648 m/s under main so
+    //G forces depend on what humans feel
+    // temperature should be okay
+    // units in order: m/s^2,m/s,C
+    if(MaxG < 25*9.8 && Lnd_Vel < 15.24 && (0<Temperature<50)) 
+    {
+	    Survival = "yes";
+    }
+    //temperatures outside of this range can be survived for  
+    //awhile but not for long
+    else if(0>Temperature>50)
+    {
+	    Survival = "yes but hurry";
+    }
+    else
+    {
+	    Survival = "Unlikely";
+    }
+
   }
 
 
@@ -186,7 +215,7 @@ Class Forge()
   {
     if(NoRadio)
     {
-      Serial.print(str);
+      Serial.print(toString());
     }
     else
     {
@@ -200,7 +229,7 @@ Class Forge()
       delay(10);
       APRS_sendStatus("Power Status: "  + BatteryStatus + "".c_str());
       delay(10);
-      APRS_sendStatus("Orientation of On-Board STEMnauts: " + Orientation + "".c_str());
+      APRS_sendStatus("Orientation of On-Board STEMnauts: " + "W: " + Orientation_W + "" + "X: " + Orientation_X + "" + "Y: " + Orientation_Y + "" + "Z: " + Orientation_Z + "".c_str());
       delay(10);
       APRS_sendStatus("Time of Landing: " + LandingTime + "".c_str());
       delay(10);
@@ -227,7 +256,7 @@ Class Forge()
     String str = "Temperature of Landing Site: " + Temperature + "C" + "\n"
     + "Apogee reached: " + Apogee + "m" + "\n"
     + "Power Status: "  + BatteryStatus + "\n"
-    + "Orientation of On-Board STEMnauts: " + Orientation + "\n"
+    + "Orientation of On-Board STEMnauts: " + "W: " + Orientation_W + "" + "X: " + Orientation_X + "" + "Y: " + Orientation_Y + "" + "Z: " + Orientation_Z + " + "\n"
     + "Time of Landing: " + LandingTime + "\n"
     + "Maximum Velocity: " + MaxVelocity + "m/s" + "\n"
     + "Landing Velocity: " + LandingVelocity + "m/s" + "\n"
