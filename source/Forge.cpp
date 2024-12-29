@@ -38,7 +38,7 @@ Class Forge()
   float MaxVelocity = 0.0;
   float LandingVelocity = 0.0;
   float MaxGForce = 0.0;	
-  int SurvivalChance = 0;	
+  String SurvivalChance = "";	
   //helper values
   float LandingTimeFloat  = 0.0; //in secconds based on landing time
   float Velocity = 0.0;
