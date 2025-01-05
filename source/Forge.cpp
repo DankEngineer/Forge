@@ -79,36 +79,36 @@ Class Forge()
 
 
 
-	float getChangeInAltitude() //calculates the absolute change in altitude based on the last two readings. note you have to run get altitude 2 times before this is reliable
-	{
-	  return math.abs(OldAltitude - Altitude);
-	}
+  float getChangeInAltitude() //calculates the absolute change in altitude based on the last two readings. note you have to run get altitude 2 times before this is reliable
+  {
+    return math.abs(OldAltitude - Altitude);
+  }
 
 
 
-	void landingVelocityAddData(float point) //adds a new acceleration data point to the circular buffer. used for calculating landing velocity
-	{
-		accels.push(point);
-	}
+  void landingVelocityAddData(float point) //adds a new acceleration data point to the circular buffer. used for calculating landing velocity
+  {
+    accels.push(point);
+  }
 
 
 
-	void calculateLandingVelocity() //calculates landing velocity by pulling the current 3 second window, cleaning the values, and integrating over time
-	{	
-		for(int i=0; i<frequency*3; i++) //removing gravity and negative values then riemann summing to get velocity by multiplying acceleration values by time period of point
-		{
+  void calculateLandingVelocity() //calculates landing velocity by pulling the current 3 second window, cleaning the values, and integrating over time
+  {	
+    for(int i=0; i<frequency*3; i++) //removing gravity and negative values then riemann summing to get velocity by multiplying acceleration values by time period of point
+    {
       LandingVelocity += (1/frequency)*((accels.pop() - 1));
     }
-	}
+  }
 
 
 
   void isMaxAltitude() //gets new altitude and checks it is greater than apogee, if so than replace
   {
     getAltitude();
-	  if(Altitude >= Apogee)
+    if(Altitude >= Apogee)
     {	
-	  	Apogee = Altitude;
+      Apogee = Altitude;
     }
   }
 
@@ -125,9 +125,9 @@ Class Forge()
 
   void getGforce() //gets acceleration from high-g imu and devides by earth's gravity
   {
-      float HighAccel = getHighGAcceleration();
-      Gforce = getHighGAcceleration() / 9.81;
-      landingVelocityAddData(HighAccel);
+    float HighAccel = getHighGAcceleration();
+    Gforce = getHighGAcceleration() / 9.81;
+    landingVelocityAddData(HighAccel);
   }
 
   float getHighGAcceleration() //gets accceleration from high-g imu. helper method for getGforce
@@ -138,9 +138,9 @@ Class Forge()
   void isMaxGforce() //gets new Gforce and checks it is greater than MaxGForce, if so than replace
   {
     getGforce()
-	  if(Gforce >= MaxGForce)
+    if(Gforce >= MaxGForce)
     {
-		  MaxGForce = Gforce;
+      MaxGForce = Gforce;
     }
   }
 
@@ -149,9 +149,9 @@ Class Forge()
   void isMaxVelocity() //gets new Velocity and checks it is greater than MaxVelocity, if so than replace
   {
     getVelocity();
-  	if(Velocity >= MaxVelocity )
+    if(Velocity >= MaxVelocity )
     {
-  		MaxVelocity = Velocity;
+      MaxVelocity = Velocity;
     }
   }
 
@@ -165,7 +165,7 @@ Class Forge()
 
   void recordTime() //sets landing time in format of MM/DD/YYYY|HH:MM:SS.NANO(includesMilisecconds)
   {
-  	LandingTime  = myGPS.getMonth() + "/" + myGPS.getDay() + "/" + myGPS.getYear() + "|" + myGPS.getHour()+ ":" + myGPS.getMinute()+ ":" + myGPS.getSecond() + "." + myGPS.getNanosecond();
+    LandingTime  = myGPS.getMonth() + "/" + myGPS.getDay() + "/" + myGPS.getYear() + "|" + myGPS.getHour()+ ":" + myGPS.getMinute()+ ":" + myGPS.getSecond() + "." + myGPS.getNanosecond();
     LandingTimeFloat = myGPS.getHour()*60*60 + myGPS.getMinute()*60 + myGPS.getSecond();
   }
 
@@ -178,7 +178,7 @@ Class Forge()
 
   void recordTemperature() //records the temperature of the landing site
   {
-	  Temperature  = bmp.readTemperature(); //temporary placeholder. will use external thermistor on final product
+    Temperature  = bmp.readTemperature(); //temporary placeholder. will use external thermistor on final product
   }
 
 
@@ -186,7 +186,7 @@ Class Forge()
   void recordOrientation() //gets the orientation from the orientation imu in quaternions. This is orientation of whole capsule, individual stemNAUTS can be derived based on position.
   {
     quat = bno.getQuat();
-  	Orientation_W = quat.w();
+    Orientation_W = quat.w();
     Orientation_X = quat.x();
     Orientation_Y = quat.y();
     Orientation_Z = quat.z();
@@ -196,15 +196,15 @@ Class Forge()
 
   void recordBatteryStatus() //returns wheather the battery is alive or not (if the battery is dead than this wont run)
   {
-	  BatteryStatus = true;
+    BatteryStatus = true;
   }
 
 
-	void calculateSurvivalChance()
+  void calculateSurvivalChance()
   {
-	  float Lnd_vel = LandingVelocity;
-	  float MaxG = MaxGForce;
-	  String Survival = "";
+    float Lnd_vel = LandingVelocity;
+    float MaxG = MaxGForce;
+    String Survival = "";
     //Landing velocity should always be under 15 because the parachute 
     //Falls at 3.660648 m/s under main so
     //G forces depend on what humans feel
@@ -212,23 +212,23 @@ Class Forge()
     //units in order: m/s^2,m/s,C
     if(MaxG < GThreshold && Lnd_Vel < LandingVelocityThreshold && Temperature > 0 && Temperature < 50) 
     {
-	    Survival = "yes";
+      Survival = "yes";
     }
     //temperatures outside of this range can be survived for  
     //awhile but not for long
     else if(Temperature < 0 || Temperature > 50)
     {
-	    Survival = "yes but hurry";
+      Survival = "yes but hurry";
     }
     else
     {
-	    Survival = "Unlikely";
+      Survival = "Unlikely";
     }
 
   }
 
 
-	void transmitData()
+  void transmitData()
   {
     if(NoRadio)
     {
@@ -290,7 +290,7 @@ Class Forge()
     }
   }
 
-	void shutdown() //shutdown is sumulated with a 10 second wait
+  void shutdown() //shutdown is sumulated with a 10 second wait
   {
     delay(10000);
   }

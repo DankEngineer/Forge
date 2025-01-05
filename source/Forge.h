@@ -18,24 +18,24 @@
 
 class Forge 
 {
-   private:
-    // Macros
-    #define BattPin       A5
-    #define GpsPwr        7
-    #define PwDwPin       A3
-    #define PowerHL       A4
-    #define PttPin        3
-    #define AnalogPin     A1
-    #define PttON         digitalWrite(PttPin, HIGH)
-    #define PttOFF        digitalWrite(PttPin, LOW)
-    #define RadioON       digitalWrite(PwDwPin, HIGH)
-    #define RadioOFF      digitalWrite(PwDwPin, LOW)
-    #define RfHiPwr       digitalWrite(PowerHL, HIGH)
-    #define RfLowPwr      digitalWrite(PowerHL, LOW)
+  private:
+  // Macros
+  #define BattPin       A5
+  #define GpsPwr        7
+  #define PwDwPin       A3
+  #define PowerHL       A4
+  #define PttPin        3
+  #define AnalogPin     A1
+  #define PttON         digitalWrite(PttPin, HIGH)
+  #define PttOFF        digitalWrite(PttPin, LOW)
+  #define RadioON       digitalWrite(PwDwPin, HIGH)
+  #define RadioOFF      digitalWrite(PwDwPin, LOW)
+  #define RfHiPwr       digitalWrite(PowerHL, HIGH)
+  #define RfLowPwr      digitalWrite(PowerHL, LOW)
 
-   // Variables
+  // Variables
 
-   //mode
+  //mode
   bool NoRadio = true;
 
   //reqs from handbook
@@ -80,32 +80,32 @@ class Forge
   char    StatusMessage[50] = "GO DUKES";
   //*****************************************************************************
    public:
-    //Constructor
-    Forge();
+  //Constructor
+  Forge();
 
-    //Methods
-    float getChangeInAltitude();
-    void landingVelocityAddData(float point);
-    void calculateLandingVelocity();
-    void isMaxAltitude();
-    void getAltitude();
-    float currentAltitude();
-    void getGforce();
-    float getHighGAcceleration();
-    void isMaxGforce();
-    void isMaxVelocity();
-    void getVelocity();
-    void recordTime();
-    bool timer();
-    void recordTemperature();
-    void recordOrientation();
-    void recordBatteryStatus();
-    void calculateSurvivalChance();
-    void transmitData();
-    int getPWMDutyCycle();
-    bool getShutdownStatus();
-    void shutdown();
-    String toString();
+  //Methods
+  float getChangeInAltitude();
+  void landingVelocityAddData(float point);
+  void calculateLandingVelocity();
+  void isMaxAltitude();
+  void getAltitude();
+  float currentAltitude();
+  void getGforce();
+  float getHighGAcceleration();
+  void isMaxGforce();
+  void isMaxVelocity();
+  void getVelocity();
+  void recordTime();
+  bool timer();
+  void recordTemperature();
+  void recordOrientation();
+  void recordBatteryStatus();
+  void calculateSurvivalChance();
+  void transmitData();
+  int getPWMDutyCycle();
+  bool getShutdownStatus();
+  void shutdown();
+  String toString();
 };
 
 #endif //FORGE_H

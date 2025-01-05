@@ -41,16 +41,17 @@ void loop()
     case FLIGHT:
     {
       forge.isMaxAltitude();
-			forge.isMaxGforce();
-			forge.isMaxVelocity();
+      forge.isMaxGforce();
+      forge.isMaxVelocity();
 
-	    if((forge.getChangeInAltitude() <= 10) && forge.currentAltitude() < 304.8) //checks for conditions signifying that landing has happened (304.8m = 1000ft)
-	    {
-		    forge.recordTime();
-		    forge.calculateLandingVelocity();
+      if((forge.getChangeInAltitude() <= 10) && forge.currentAltitude() < 304.8) //checks for conditions signifying that landing has happened (304.8m = 1000ft)
+      {
+        forge.recordTime();
+        forge.calculateLandingVelocity();
         currentState = nextState;
         nextState = TRANSMIT;
-	    }
+      }
+
       if(forge.getShutdownStatus())
       {
         currentState = SHUTDOWN;				
@@ -59,24 +60,24 @@ void loop()
 
     case LAND:
     {
-			forge.recordTemperature();
-			forge.recordOrientation();
-			forge.recordBatteryStatus();
-			forge.calculateSurvivalChance();
+      forge.recordTemperature();
+      forge.recordOrientation();
+      forge.recordBatteryStatus();
+      forge.calculateSurvivalChance();
       currentState = nextState;
       nextState = SHUTDOWN; //no shutdown check because will never stay in this state
     }
 
     case TRANSMIT:
     {
-			if(forge.timer())
+      if(forge.timer())
       {
-				forge.transmitData();
-			}
-			else
-			{
-				currentState = nextState;
-			}
+        forge.transmitData();
+      }
+      else
+      {
+        currentState = nextState;
+      }
 
       if(forge.getShutdownStatus())
       {
@@ -86,7 +87,7 @@ void loop()
 
     case SHUTDOWN:
     {
-	 		forge.shutdown();
+      forge.shutdown();
     }
 
   }
