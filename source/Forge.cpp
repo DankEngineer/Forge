@@ -7,7 +7,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <avr/dtostrf.h>
-#include <MemoryFree.h>;
+#include <MemoryFree.h>
 #include <ZeroAPRS.h>                       //https://github.com/hakkican/ZeroAPRS
 #include <SparkFun_Ublox_Arduino_Library.h> //https://github.com/sparkfun/SparkFun_Ublox_Arduino_Library
 #include <Adafruit_BMP085.h>                //https://github.com/adafruit/Adafruit-BMP085-Library
@@ -16,7 +16,14 @@
 
 Class Forge()
 {
+  
   //macros
+  #define BattPin       A5
+  #define GpsPwr        7
+  #define PwDwPin       A3
+  #define PowerHL       A4
+  #define PttPin        3
+  #define AnalogPin     A1
   #define PttON       digitalWrite(PttPin, HIGH)
   #define PttOFF      digitalWrite(PttPin, LOW)
   #define RadioON     digitalWrite(PwDwPin, HIGH)
@@ -26,7 +33,8 @@ Class Forge()
   
   //mode
   bool NoRadio = true;
-  // reqs from handbook
+
+  //reqs from handbook
   float Temperature = 0.0;
   float Apogee = 0.0;
   bool BatteryStatus = true;
@@ -38,21 +46,25 @@ Class Forge()
   float MaxVelocity = 0.0;
   float LandingVelocity = 0.0;
   float MaxGForce = 0.0;	
-  String SurvivalChance = "";	
-  //helper values
-  float LandingTimeFloat  = 0.0; //in secconds based on landing time
+  String SurvivalChance = "";
+
+  //helper variables
+  float LandingTimeFloat  = 0.0; //frequency of high-G accelerometer data (Hz)
   float Velocity = 0.0;
   float GForce = 0.0;
   float Altitude = 0.0;
   float OldAltitude = 0.0;
-  float frequency = 20; //data points per sec for high-g accelerometer
-  CircularBuffer<float, frequency *3> accels;
-  Adafruit_BNO055 bno55 = Adafruit_BNO055(55);
+  const int shutdownThreshold = 50; //threshold for shutdown signal (% duty cycle)
+  const float GThreshold = 25.0; //survivable GForce threshold
+  const float LandingVelocityThreshold = 15.24; //survivable Landing Velocity threshold
+  const float frequency = 20.0; //data points per sec for high-g accelerometer
+  CircularBuffer<float, frequency * 3> accels;
+  Adafruit_BNO055 bno = Adafruit_BNO055(55);
   imu::Quaternion quat = bno.getQuat();
   Adafruit_ADXL375 adxl = Adafruit_ADXL375(375);
   imu::Vector<3> Acceleration = adxl.getVector(Adafruit_ADXL375::VECTOR_ACCELEROMETER);
 
-  //******************************  APRS CONFIG ********************************** // from https://github.com/lightaprs/LightAPRS-2.0/blob/main/LightAPRS-2-vehicle/LightAPRS-2-vehicle.ino
+  //******************************  APRS CONFIG ********************************** //from https://github.com/lightaprs/LightAPRS-2.0/blob/main/LightAPRS-2-vehicle/LightAPRS-2-vehicle.ino
   char    CallSign[7]="NOCALL"; //DO NOT FORGET TO CHANGE YOUR CALLSIGN
   int8_t  CallNumber=9;//SSID http://www.aprs.org/aprs11/SSIDs.txt
   char    Symbol='>'; // 'O' for balloon, '>' for car, for more info : http://www.aprs.org/symbols/symbols-new.txt
@@ -60,36 +72,32 @@ Class Forge()
 
   char Frequency[9]="144.3900"; //default frequency. 144.3900 for US, 144.8000 for Europe
 
-  char    comment[50] = "Sending payload data for NASA USLI"; // Max 50 char but shorter is better.
+  char    comment[50] = "Sending payload data for NASA USLI"; //Max 50 char but shorter is better.
   char    StatusMessage[50] = "GO DUKES";
   //*****************************************************************************
 
 
 
 
-	Float getChangeInAltitude() //note you have to run get altitude 2 times before this is reliable on main method it calls getaltitude 2 times in setup
+	float getChangeInAltitude() //calculates the absolute change in altitude based on the last two readings. note you have to run get altitude 2 times before this is reliable
 	{
 	  return math.abs(OldAltitude - Altitude);
 	}
 
 
 
-	void landingVelocityAddData(float point) //add data to time window that landing velocity will be calculated from window is circular queue so only 3 seconds of data is kept
+	void landingVelocityAddData(float point) //adds a new acceleration data point to the circular buffer. used for calculating landing velocity
 	{
 		accels.push(point);
 	}
 
 
 
-	Void calculateLandingVelocity() //calculates landing velocity by pulling the current 3 second window, cleaning the values, and integrating over time
+	void calculateLandingVelocity() //calculates landing velocity by pulling the current 3 second window, cleaning the values, and integrating over time
 	{	
-		for(i=0; i>frequency*3; i++) //removing gravity and - values
+		for(int i=0; i<frequency*3; i++) //removing gravity and negative values then riemann summing to get velocity by multiplying acceleration values by time period of point
 		{
-			accels.unshift(math.abs(accels.pop()) - 1)
-		}
-		for(i=0; i>frequency*3; i+) //riemann summing to get velocity by multiplying acceleration values by time period of point
-		{
-      LandingVelocity += (1/frequency)*accels.pop();
+      LandingVelocity += (1/frequency)*((accels.pop() - 1));
     }
 	}
 
@@ -100,22 +108,29 @@ Class Forge()
     getAltitude();
 	  if(Altitude >= Apogee)
     {	
-	  	Apogee = Altitude();
+	  	Apogee = Altitude;
     }
   }
 
-  void getAltitude() //moves curent altitude to OldAltitude than gets new value from hardware
+  void getAltitude() //moves curent altitude to OldAltitude then gets new value from BMP
   {
-    OldAltitude = Altitude
+    OldAltitude = Altitude;
     Altitude = bmp.readAltitude();
   }
 
-  void getGforce() // gets acceleration from high-g imu and devides by earth's gravity
+  float currentAltitude()//returns current altitude
   {
-      Gforce = getHighGAcceleration() / 9.81;
+    return Altitude;
   }
 
-  float getHighGAcceleration() // gets accceleration from high-g imu. helper method for getGforce
+  void getGforce() //gets acceleration from high-g imu and devides by earth's gravity
+  {
+      float HighAccel = getHighGAcceleration();
+      Gforce = getHighGAcceleration() / 9.81;
+      landingVelocityAddData(HighAccel);
+  }
+
+  float getHighGAcceleration() //gets accceleration from high-g imu. helper method for getGforce
   {
     return sqrt((Acceleration.x())*(Acceleration.x()) + (Acceleration.y())*(Acceleration.y()) + (Acceleration.z())*(Acceleration.z()));
   }
@@ -142,33 +157,35 @@ Class Forge()
 
   void getVelocity() //gets new Velocity from change in altitude devided by time
   {
-    Velocity = (getChangeInAltitude()/(1/frequency));
+    getAltitude();
+    Velocity = (getChangeInAltitude()/(1/frequency)); //velocity = (change in position (vertical))/(change in time)
   }
 
 
 
-  void recordTime() // sets landing time in format of MM/DD/YYYY|HH:MM:SS.NANO(includesMilisecconds)
+  void recordTime() //sets landing time in format of MM/DD/YYYY|HH:MM:SS.NANO(includesMilisecconds)
   {
   	LandingTime  = myGPS.getMonth() + "/" + myGPS.getDay() + "/" + myGPS.getYear() + "|" + myGPS.getHour()+ ":" + myGPS.getMinute()+ ":" + myGPS.getSecond() + "." + myGPS.getNanosecond();
-    LandingTimeFloat = myGPS.getHour()*60*60 + myGPS.getMinute()*60 + myGPS.getSecond()
+    LandingTimeFloat = myGPS.getHour()*60*60 + myGPS.getMinute()*60 + myGPS.getSecond();
   }
 
-  bool timer() // determines if 300 secconds (5 min) have passed since landing
+  bool timer() //determines if 300 secconds (5 min) have passed since landing
   {
     return (LandingTimeFloat + 300 >= myGPS.getHour()*60*60 + myGPS.getMinute()*60 + myGPS.getSecond());
   }
 
 
 
-  void recordTemperature() // records the temperature of the landing site
+  void recordTemperature() //records the temperature of the landing site
   {
-	  Temperature  = bmp.readTemperature() //temporary placeholder. will use external thermiostor on final product
+	  Temperature  = bmp.readTemperature(); //temporary placeholder. will use external thermistor on final product
   }
 
 
 
-  void recordOrientation() // gets the orientation from the orientation imu in quaternions. This is orientation of whole capsule, individual stemNAUTS can be derived based on position.
+  void recordOrientation() //gets the orientation from the orientation imu in quaternions. This is orientation of whole capsule, individual stemNAUTS can be derived based on position.
   {
+    quat = bno.getQuat();
   	Orientation_W = quat.w();
     Orientation_X = quat.x();
     Orientation_Y = quat.y();
@@ -177,7 +194,7 @@ Class Forge()
 
 
 
-  void recordBatteryStatus() // returns wheather the battery is alive or not (if the battery is dead than this wont run)
+  void recordBatteryStatus() //returns wheather the battery is alive or not (if the battery is dead than this wont run)
   {
 	  BatteryStatus = true;
   }
@@ -185,21 +202,21 @@ Class Forge()
 
 	void calculateSurvivalChance()
   {
-	  Lnd_vel = calculateLandingVelocity();
-	  MaxG = getGforce();
+	  float Lnd_vel = LandingVelocity;
+	  float MaxG = MaxGForce;
 	  String Survival = "";
     //Landing velocity should always be under 15 because the parachute 
     //Falls at 3.660648 m/s under main so
     //G forces depend on what humans feel
-    // temperature should be okay
-    // units in order: m/s^2,m/s,C
-    if(MaxG < 25*9.8 && Lnd_Vel < 15.24 && (0<Temperature<50)) 
+    //temperature should be okay
+    //units in order: m/s^2,m/s,C
+    if(MaxG < GThreshold && Lnd_Vel < LandingVelocityThreshold && Temperature > 0 && Temperature < 50) 
     {
 	    Survival = "yes";
     }
     //temperatures outside of this range can be survived for  
     //awhile but not for long
-    else if(0>Temperature>50)
+    else if(Temperature < 0 || Temperature > 50)
     {
 	    Survival = "yes but hurry";
     }
@@ -211,7 +228,7 @@ Class Forge()
   }
 
 
-	transmitData()
+	void transmitData()
   {
     if(NoRadio)
     {
@@ -243,25 +260,52 @@ Class Forge()
       delay(10);      
       PttOFF;
       RadioOFF;
+      delay(2000);
     }
   }
 
-	shutdown()
+  int getPWMDutyCycle() //determines duty cycle from ELRS PWM reciver. used in determining if shutdown signal has been sent
   {
-    //hardware shudown here
+    int highTime = pulseIn(AnalogPin, HIGH);//Measure the length of the HIGH state
+    int lowTime = pulseIn(AnalogPin, LOW); //Measure the duration of the LOW state
+    int totalTime = highTime + lowTime;//Calculate the total period of the PWM signal
+    if (totalTime == 0)//Avoid division by zero when No signal detected
+    {
+      return 0;
+    }
+    int dutyCycle = (highTime * 100) / totalTime;// Calculate the duty cycle as a percentage
+    return dutyCycle;
   }
   
-  String toString() // returns a string with temperature of landing site, Apogee reached, Battery check/power status, Orientation of on-board STEMnauts, Time of landing, Maximum velocity, Landing velocity, G-forces sustained, andCalculated STEMnaut crew survivability
+  bool getShutdownStatus() //uses dutycycle to determine whether should shutdown
+  {
+    int dutyCycle = getPWMDutyCycle();
+    if(dutyCycle >= shutdownThreshold)
+    {
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+	void shutdown() //shutdown is sumulated with a 10 second wait
+  {
+    delay(10000);
+  }
+  
+  String toString() //returns a string with temperature of landing site, Apogee reached, Battery check/power status, Orientation of on-board STEMnauts, Time of landing, Maximum velocity, Landing velocity, G-forces sustained, andCalculated STEMnaut crew survivability
   {
     String str = "Temperature of Landing Site: " + Temperature + "C" + "\n"
     + "Apogee reached: " + Apogee + "m" + "\n"
     + "Power Status: "  + BatteryStatus + "\n"
-    + "Orientation of On-Board STEMnauts: " + "W: " + Orientation_W + "" + "X: " + Orientation_X + "" + "Y: " + Orientation_Y + "" + "Z: " + Orientation_Z + " + "\n"
+    + "Orientation of On-Board STEMnauts: " + "W: " + Orientation_W + "|" + "X: " + Orientation_X + "|" + "Y: " + Orientation_Y + "|" + "Z: " + Orientation_Z + "" + "\n"
     + "Time of Landing: " + LandingTime + "\n"
     + "Maximum Velocity: " + MaxVelocity + "m/s" + "\n"
     + "Landing Velocity: " + LandingVelocity + "m/s" + "\n"
     + "G-Forces Sustained: " + MaxGForce + "G" + "\n"
-    + "Calculated STEMnaut Crew Survivability: " + SurvivalChance + "%" + "\n"
+    + "Calculated STEMnaut Crew Survivability: " + SurvivalChance + "%" + "\n";
     return str;
   }
   

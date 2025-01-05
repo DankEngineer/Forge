@@ -11,7 +11,7 @@ void setup()
   forge.getAltitude();
   forge.getVelocity();
 
-  //FSM stuff
+  //FSM instantiateion
   State currentState = PAD;
   State nextState = FLIGHT;
   enum State {PAD, FLIGHT, LAND, TRANSMIT, SHUTDOWN};
@@ -44,10 +44,10 @@ void loop()
 			forge.isMaxGforce();
 			forge.isMaxVelocity();
 
-	    if(forge.getChangeInAltitude()<= 10)
+	    if((forge.getChangeInAltitude() <= 10) && forge.currentAltitude() < 304.8) //checks for conditions signifying that landing has happened (304.8m = 1000ft)
 	    {
 		    forge.recordTime();
-		    forge.recordPriorVelocity();
+		    forge.calculateLandingVelocity();
         currentState = nextState;
         nextState = TRANSMIT;
 	    }

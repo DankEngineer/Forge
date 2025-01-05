@@ -1,73 +1,98 @@
 #ifndef FORGE_H
 #define FORGE_H
 
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <valarray>
 #include <Arduino.h>
 #include <Wire.h>
 #include <math.h>
 #include <stdio.h>
 #include <avr/dtostrf.h>
 #include <MemoryFree.h>
-#include <ZeroAPRS.h>
-#include <SparkFun_Ublox_Arduino_Library.h>
-#include <Adafruit_BMP085.h>
-#include <Adafruit_BNO055.h>
-#include <CircularBuffer.h>
-#include <imu.h>
+#include <ZeroAPRS.h>                       //https://github.com/hakkican/ZeroAPRS
+#include <SparkFun_Ublox_Arduino_Library.h> //https://github.com/sparkfun/SparkFun_Ublox_Arduino_Library
+#include <Adafruit_BMP085.h>                //https://github.com/adafruit/Adafruit-BMP085-Library
+#include <CircularBuffer.hpp>               //https://github.com/rlogiacco/CircularBuffer
 
-class Forge {
-public:
+class Forge 
+{
+   private:
     // Macros
-    #define PttON       digitalWrite(PttPin, HIGH)
-    #define PttOFF      digitalWrite(PttPin, LOW)
-    #define RadioON     digitalWrite(PwDwPin, HIGH)
-    #define RadioOFF    digitalWrite(PwDwPin, LOW)
-    #define RfHiPwr     digitalWrite(PowerHL, HIGH)
-    #define RfLowPwr    digitalWrite(PowerHL, LOW)
+    #define BattPin       A5
+    #define GpsPwr        7
+    #define PwDwPin       A3
+    #define PowerHL       A4
+    #define PttPin        3
+    #define AnalogPin     A1
+    #define PttON         digitalWrite(PttPin, HIGH)
+    #define PttOFF        digitalWrite(PttPin, LOW)
+    #define RadioON       digitalWrite(PwDwPin, HIGH)
+    #define RadioOFF      digitalWrite(PwDwPin, LOW)
+    #define RfHiPwr       digitalWrite(PowerHL, HIGH)
+    #define RfLowPwr      digitalWrite(PowerHL, LOW)
 
-    // Variables
-    bool NoRadio = true;
-    float Temperature = 0.0;
-    float Apogee = 0.0;
-    bool BatteryStatus = true;
-    float Orientation = 0.0;
-    String LandingTime = "";
-    float MaxVelocity = 0.0;
-    float LandingVelocity = 0.0;
-    float MaxGForce = 0.0;
-    int SurvivalChance = 0;
-    float LandingTimeFloat = 0.0;
-    float Velocity = 0.0;
-    float GForce = 0.0;
-    float Altitude = 0.0;
-    float OldAltitude = 0.0;
-    float frequency = 20.0; // Data points per second
-    CircularBuffer<float, 60> accels;
+   // Variables
 
-    Adafruit_BNO055 bno;
-    HighGIMU HighGIMU;
-    imu::Vector<3> Acceleration;
+   //mode
+  bool NoRadio = true;
 
-    // APRS Configuration
-    char CallSign[7] = "NOCALL";
-    int8_t CallNumber = 9;
-    char Symbol = '>';
-    bool alternateSymbolTable = false;
-    char Frequency[9] = "144.3900";
-    char comment[50] = "Sending payload data for NASA USLI";
-    char StatusMessage[50] = "GO DUKES";
+  //reqs from handbook
+  float Temperature = 0.0;
+  float Apogee = 0.0;
+  bool BatteryStatus = true;
+  float Orientation_W = 0.0;//-|
+  float Orientation_X = 0.0;// |
+  float Orientation_Y = 0.0;// | orientation in quaternions
+  float Orientation_Z = 0.0;//-|
+  String LandingTime = "";
+  float MaxVelocity = 0.0;
+  float LandingVelocity = 0.0;
+  float MaxGForce = 0.0;	
+  String SurvivalChance = "";
 
-    // Constructor
+  //helper variables
+  float LandingTimeFloat  = 0.0; //frequency of high-G accelerometer data (Hz)
+  float Velocity = 0.0;
+  float GForce = 0.0;
+  float Altitude = 0.0;
+  float OldAltitude = 0.0;
+  const int shutdownThreshold = 50; //threshold for shutdown signal (% duty cycle)
+  const float GThreshold = 25.0; //survivable GForce threshold
+  const float LandingVelocityThreshold = 15.24; //survivable Landing Velocity threshold
+  const float frequency = 20.0; //data points per sec for high-g accelerometer
+  CircularBuffer<float, frequency * 3> accels;
+  Adafruit_BNO055 bno = Adafruit_BNO055(55);
+  imu::Quaternion quat = bno.getQuat();
+  Adafruit_ADXL375 adxl = Adafruit_ADXL375(375);
+  imu::Vector<3> Acceleration = adxl.getVector(Adafruit_ADXL375::VECTOR_ACCELEROMETER);
+
+  //******************************  APRS CONFIG ********************************** //from https://github.com/lightaprs/LightAPRS-2.0/blob/main/LightAPRS-2-vehicle/LightAPRS-2-vehicle.ino
+  char    CallSign[7]="NOCALL"; //DO NOT FORGET TO CHANGE YOUR CALLSIGN
+  int8_t  CallNumber=9;//SSID http://www.aprs.org/aprs11/SSIDs.txt
+  char    Symbol='>'; // 'O' for balloon, '>' for car, for more info : http://www.aprs.org/symbols/symbols-new.txt
+  bool    alternateSymbolTable = false ; //false = '/' , true = '\'
+
+  char Frequency[9]="144.3900"; //default frequency. 144.3900 for US, 144.8000 for Europe
+
+  char    comment[50] = "Sending payload data for NASA USLI"; //Max 50 char but shorter is better.
+  char    StatusMessage[50] = "GO DUKES";
+  //*****************************************************************************
+   public:
+    //Constructor
     Forge();
 
-    // Methods
+    //Methods
     float getChangeInAltitude();
     void landingVelocityAddData(float point);
     void calculateLandingVelocity();
     void isMaxAltitude();
     void getAltitude();
-    void getGForce();
+    float currentAltitude();
+    void getGforce();
     float getHighGAcceleration();
-    void isMaxGForce();
+    void isMaxGforce();
     void isMaxVelocity();
     void getVelocity();
     void recordTime();
@@ -77,11 +102,10 @@ public:
     void recordBatteryStatus();
     void calculateSurvivalChance();
     void transmitData();
+    int getPWMDutyCycle();
+    bool getShutdownStatus();
     void shutdown();
     String toString();
-
-private:
-    void APRS_sendStatus(const char* message);
 };
 
-#endif // FORGE_H
+#endif //FORGE_H
