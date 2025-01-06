@@ -19,22 +19,21 @@
 class Forge 
 {
   private:
-  // Macros
+    
+  //macros
   #define BattPin       A5
   #define GpsPwr        7
   #define PwDwPin       A3
   #define PowerHL       A4
   #define PttPin        3
   #define AnalogPin     A1
-  #define PttON         digitalWrite(PttPin, HIGH)
-  #define PttOFF        digitalWrite(PttPin, LOW)
-  #define RadioON       digitalWrite(PwDwPin, HIGH)
-  #define RadioOFF      digitalWrite(PwDwPin, LOW)
-  #define RfHiPwr       digitalWrite(PowerHL, HIGH)
-  #define RfLowPwr      digitalWrite(PowerHL, LOW)
-
-  // Variables
-
+  #define PttON       digitalWrite(PttPin, HIGH)
+  #define PttOFF      digitalWrite(PttPin, LOW)
+  #define RadioON     digitalWrite(PwDwPin, HIGH)
+  #define RadioOFF    digitalWrite(PwDwPin, LOW)
+  #define RfHiPwr     digitalWrite(PowerHL, HIGH)
+  #define RfLowPwr    digitalWrite(PowerHL, LOW)
+  
   //mode
   bool NoRadio = true;
 
@@ -46,14 +45,14 @@ class Forge
   float Orientation_X = 0.0;// |
   float Orientation_Y = 0.0;// | orientation in quaternions
   float Orientation_Z = 0.0;//-|
-  String LandingTime = "";
+  String LandingTimeString = "";
   float MaxVelocity = 0.0;
   float LandingVelocity = 0.0;
   float MaxGForce = 0.0;	
   String SurvivalChance = "";
 
   //helper variables
-  float LandingTimeFloat  = 0.0; //frequency of high-G accelerometer data (Hz)
+  int LandingTime  = 0; //frequency of high-G accelerometer data (Hz)
   float Velocity = 0.0;
   float GForce = 0.0;
   float Altitude = 0.0;
@@ -62,7 +61,8 @@ class Forge
   const float GThreshold = 25.0; //survivable GForce threshold
   const float LandingVelocityThreshold = 15.24; //survivable Landing Velocity threshold
   const float frequency = 20.0; //data points per sec for high-g accelerometer
-  CircularBuffer<float, frequency * 3> accels;
+  const int window = 0;
+  CircularBuffer<float, frequency * window> accels;
   Adafruit_BNO055 bno = Adafruit_BNO055(55);
   imu::Quaternion quat = bno.getQuat();
   Adafruit_ADXL375 adxl = Adafruit_ADXL375(375);
@@ -79,7 +79,7 @@ class Forge
   char    comment[50] = "Sending payload data for NASA USLI"; //Max 50 char but shorter is better.
   char    StatusMessage[50] = "GO DUKES";
   //*****************************************************************************
-   public:
+  public:
   //Constructor
   Forge();
 
@@ -96,6 +96,7 @@ class Forge
   void isMaxVelocity();
   void getVelocity();
   void recordTime();
+  int getTime();
   bool timer();
   void recordTemperature();
   void recordOrientation();

@@ -3,6 +3,8 @@
 #include <vector>
 #include <valarray>
 #include <Forge.h>
+
+Forge *forge;
 void setup()
 {
   //Instantiate forge object and fill variables
