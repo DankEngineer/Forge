@@ -26,6 +26,7 @@ The `Forge` class provides a system for monitoring and analyzing data from the p
 - **LightAPRS 2.0**: A microcontroller integrated with the GPS, altimeter, and radio listed above.
 - **Adafruit BNO055**: Absolute orientation IMU for orientation tracking.
 - **Adafruit ADXL375**: High-G accelerometer for G-force measurements.
+- **TMP36**: Thermistor for temperature measurements.
 ---
 
 ## Installation
