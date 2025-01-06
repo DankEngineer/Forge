@@ -70,7 +70,7 @@ The `Forge` object is instantiated using its constructor, which initializes the 
 
 - **Shutdown**:
   - `getShutdownStatus()`: Determines if a shutdown signal has been received.
-  - `shutdown()`: Simulates shutdown by pausing operations for 10 seconds.
+  - `shutdown()`: Simulates shutdown by pausing operations for 10 seconds (this get looped infinitely).
 
 ---
 
