@@ -21,7 +21,7 @@ The `Forge` class provides a system for monitoring and analyzing data from the p
 
 ## Sensors Used
 - **Ublox MAX-M8Q GPS**: For time and position data.
-- **Adafruit BMP085**: For altitude and temperature readings.
+- **Adafruit BMP085**: For altitude readings.
 - **Dorji DRA818V**: For transmitting data via APRS.
 - **LightAPRS 2.0**: A microcontroller integrated with the GPS, altimeter, and radio listed above.
 - **Adafruit BNO055**: Absolute orientation IMU for orientation tracking.
