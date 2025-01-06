@@ -76,7 +76,7 @@ The `Forge` object is instantiated using its constructor, which initializes the 
 
 ## Data Format
 ### Telemetry Data sent through APRS
-The system generates telemetry data in the following format th be sent as an APRS status messages with a delay between transmissions:
+The system generates telemetry data in the following format to be sent as an APRS status messages with a small delay between transmissions:
 - Temperature of Landing Site: X°C 
 - Apogee reached: Y m
 - Power Status: true/false
