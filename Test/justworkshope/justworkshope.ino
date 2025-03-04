@@ -421,6 +421,13 @@ void sendStatus() //send statusmessage char array
   }
 
 
+  float getTemp()
+  {
+      int sensorValue = analogRead(A1);
+        float voltage = sensorValue * (1.6/1024.0);// Convert the analog reading (which goes from 0 - 1023) to a voltage (0 - 5V)
+        return voltage; //- 0.5)*100;
+  }
+
   bool getShutdownStatus() //uses dutycycle to determine whether should shutdown
   {
     return pulseIn(A2,HIGH) > 1500;
@@ -477,7 +484,7 @@ void loop(void)
     case PAD:
     {
       getAltitude();
-      SerialUSB.println("PAD|Alt: " + String(Altitude) +"");
+      SerialUSB.println("PAD|Alt: " + String(Altitude) + " temp: " + getTemp() + "");
       
       if(getChangeInAltitude() >= 10) //if altitude change is significant enough (not just moving rocket around but an actual liftoff) go to flight stage
       {
