@@ -425,7 +425,7 @@ void sendStatus() //send statusmessage char array
   {
       int sensorValue = analogRead(A1);
         float voltage = sensorValue * (1.6/1024.0);// Convert the analog reading (which goes from 0 - 1023) to a voltage (0 - 5V)
-        return voltage; //- 0.5)*100;
+        return (voltage- 0.5)*100;
   }
 
   bool getShutdownStatus() //uses dutycycle to determine whether should shutdown
