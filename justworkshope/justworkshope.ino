@@ -102,7 +102,7 @@ float LandingVelocityThreshold = 15.24;
 String Survival = "";
 
 //set at location
-float StartAltitude = 419.00;
+float StartAltitude = 0.0;
 
 
 
@@ -189,6 +189,8 @@ void setup()
       getAltitude();//priming altitude change
       getAltitude();
       getAltitude();
+      StartAltitude = bmp.readAltitude();
+
 }
 
 void setReports() 
