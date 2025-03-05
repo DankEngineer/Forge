@@ -80,7 +80,7 @@ BNO08x mBNO085;
   State nextState = FLIGHT;
 float OldAltitude = 0.0;
 //DO NOT CALL A THE ALTIMETER HERE (calling bmp.readAltitude() screwed stuff up)
-float Altitude = 0; 
+float Altitude = 0.0; 
 const float frq = 1;
 CircularBuffer<float, 20> accels;
 float LandingVelocity = -999.0;
@@ -100,6 +100,9 @@ int BatteryStatus = 1;
 float GThreshold = 25.0;
 float LandingVelocityThreshold = 15.24;
 String Survival = "";
+
+//set at location
+float StartAltitude = 419.00;
 
 
 
@@ -206,7 +209,6 @@ void sleepSeconds(int sec) //sleep in secconds
   SerialUSB.flush();
   delay(1000*sec);
 }
-
 
 
 byte configDra818(char *freq)//radio config
@@ -421,12 +423,34 @@ void sendStatus() //send statusmessage char array
 
   }
 
-
-  float getTemp()
+  float oldgetTemp()
   {
       int sensorValue = analogRead(A1);
         float voltage = sensorValue * (1.6/1024.0);// Convert the analog reading (which goes from 0 - 1023) to a voltage (0 - 5V)
         return (voltage- 0.5)*100;
+  }
+
+
+  float getTemp()
+  {
+        int sensorValue = 0;
+        float voltage = 0.0;
+        float AvgVlt = 0;
+        for (int i = 0; i <=99 ; i++) {
+          //read analog signal
+          sensorValue = analogRead(A1);
+          //convert bits to voltage
+          voltage = sensorValue*(1.6/1024.0);
+          //sum the voltages
+          AvgVlt = voltage + AvgVlt;
+         delay(1);
+        }
+        //average the voltages
+        AvgVlt = AvgVlt/100;
+        //convert to temperature
+        float Temp = (AvgVlt - 0.5)*100;
+        //return the temperature
+        return Temp;
   }
 
   bool getShutdownStatus() //uses dutycycle to determine whether should shutdown
@@ -456,7 +480,11 @@ void sendStatus() //send statusmessage char array
 
  }
 
+float getAbsAltitude(){
 
+  return (bmp.readAltitude()- StartAltitude);
+
+}
 
 
 
@@ -485,7 +513,7 @@ void loop(void)
     case PAD:
     {
       getAltitude();
-      SerialUSB.println("PAD|Alt: " + String(Altitude) + " temp: " + getTemp() + "");
+      SerialUSB.println("PAD|Alt: " + String(Altitude) + " tempnew: " + getTemp() + " tempold: " + oldgetTemp() + " Pulse in: " + pulseIn(A2,HIGH) +" absAlt: " + getAbsAltitude() );
       
       if(getChangeInAltitude() >= 10) //if altitude change is significant enough (not just moving rocket around but an actual liftoff) go to flight stage
       {

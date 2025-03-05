@@ -17,12 +17,14 @@ void setup()
 
 void loop(void)
 {
+
+  SerialUSB.println(pulseIn(A2,HIGH));
   if(1500<pulseIn(A2,HIGH))
   {
     SerialUSB.println("Off");
   }
   else
   {
-    SerialUSB.println("On");
+    SerialUSB.println("On : " + pulseIn(A2,HIGH));
   }
 }
