@@ -79,7 +79,8 @@ BNO08x mBNO085;
   State currentState = PAD;
   State nextState = FLIGHT;
 float OldAltitude = 0.0;
-float Altitude = 0.0;
+//DO NOT CALL A THE ALTIMETER HERE (calling bmp.readAltitude() screwed stuff up)
+float Altitude = 0; 
 const float frq = 1;
 CircularBuffer<float, 20> accels;
 float LandingVelocity = -999.0;
@@ -103,7 +104,7 @@ String Survival = "";
 
 
 
-
+//
 void setup() 
 {
  
