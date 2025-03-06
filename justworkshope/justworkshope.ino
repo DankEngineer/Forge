@@ -69,6 +69,7 @@ int16_t   GpsResetTime=1800; // timeout for reset if GPS is not fixed
 boolean ublox_high_alt_mode_enabled = false; //do not change this
 int16_t GpsInvalidTime=0; //do not change this
 boolean gpsSetup=false; //do not change this.
+bool satsmode = false;//use satalites or no
 
 //********************************************************************************
 SFE_UBLOX_GPS myGPS;
@@ -81,7 +82,7 @@ BNO08x mBNO085;
 float OldAltitude = 0.0;
 //DO NOT CALL A THE ALTIMETER HERE (calling bmp.readAltitude() screwed stuff up)
 float Altitude = 0.0; 
-const float frq = 1;
+const float frq = 20;
 CircularBuffer<float, 20> accels;
 float LandingVelocity = -999.0;
 float Apogee = -690000.0;
@@ -98,17 +99,18 @@ float Temperature = -694.20;
 int BatteryStatus = 1;
 float GThreshold = 25.0;
 float LandingVelocityThreshold = 15.24;
-String Survival = "";
-float timeSinceBoot = 0.0;
-float absTime = 0.0;
+
+long long absTime = 0;
 String absTimeStr = "";
-int month = 0;
-int day = 0;
-int year = 0;
+int month = 3;
+int day = 8;
+int year = 2025;
 int sats = 0;
 bool GpsFirstFix = false;
 int stableCounter = 0;
 int remoteShutoffCounter = 0;
+String Survival = "";
+
 
 //set at location
 float StartAltitude = 0.0;
@@ -204,8 +206,12 @@ void setup()
         tempalt += bmp.readAltitude();
       }
       StartAltitude = tempalt/100;
-    initGps();// initializes gps and waits till satalites are found
-    updateTime();
+    if(satsmode)
+    {
+      initGps(); //initializes gps 
+      updateTime();//waits till satalites are found and updates time and date
+    }
+
   
 }
 
@@ -431,48 +437,84 @@ void sendStatus() //send statusmessage char array
   }
 
     void getVelocity() //gets new Velocity from change in altitude devided by time
-  {
+    {
     getAltitude();
-    Velocity = (getChangeInAltitude()*frq); //velocity = (change in position (vertical))/(change in time)
-  }
-
-  void recordTime() //sets landing time in format of MM/DD/YYYY|HH:MM:SS.NANO(includesMilisecconds) 
-  {
-    int hour = (absTime/3600.0 - fmod(absTime,3600.0));
-    int min = (fmod(absTime,3600.0) - fmod(absTime,60.0));
-    int sec = fmod(absTime,60.0);
-    
-     //creates date string using internal clock updated by satalie
-    absTimeStr = ("" + String(month) + "-" + String(day) + "-" + String(year) + ":" + String(hour) + ":" + String(min) + ":" + String(sec) + "");
-  }
-
-  void updateTime()
-  {
-    if(sats>0)
-    {
-      SerialUSB.println("sats found: " + String(sats));
-      month = myGPS.getMonth();
-      day = myGPS.getDay();
-      year = myGPS.getYear();
-      absTime = myGPS.getHour()*60*60 + myGPS.getMinute()*60 + myGPS.getSecond() + millis()/1000; //update absolute time from satalite
+    Velocity = (getChangeInAltitude()*(1/frq)); //velocity = (change in position (vertical))/(change in time)
     }
-    else
-    {
-      SerialUSB.println("sats found: " + String(sats));
-      delay(10000);
-      updateTime();
-    }
+
+  void recordTime() 
+  {
+    long long absTim = absTime;
+    int hour = absTim / 3600000;
+    absTim %= 3600000;
+    int min = absTim / 60000;
+    absTim %= 60000;
+    int second = absTim / 1000;
+    int milli = absTim % 1000; 
     
+    // Format date and time as MM/DD/YYYY|HH:MM:SS.MS with proper zero-padding
+    absTimeStr = (String(month < 10 ? "0" : "") + String(month) + "/" +
+                  String(day < 10 ? "0" : "") + String(day) + "/" +
+                  String(year) + "|" +
+                  (hour < 10 ? "0" : "") + String(hour) + ":" +  // Ensures leading zero
+                  (min < 10 ? "0" : "") + String(min) + ":" +
+                  (second < 10 ? "0" : "") + String(second) + "." +
+                  (milli < 100 ? (milli < 10 ? "00" : "0") : "") + String(milli));
   }
 
-    int getTime()
+  void updateTime() 
   {
-    landingTime = 0; //myGPS.getHour()*3600 + myGPS.getMinute()*60 + myGPS.getSecond();
+    static unsigned long long millisAtSync = 0;
+    static unsigned long long lastAbsTime = 0;
+
+    if (sats > 0) 
+    {
+        Serial.println("Satellites found: " + String(sats));
+
+        // Sync date from GPS
+        month = myGPS.getMonth();
+        day = myGPS.getDay();
+        year = myGPS.getYear();
+
+        // Capture sync time
+        millisAtSync = millis();
+
+        // Compute absolute time in milliseconds
+        absTime = (myGPS.getHour() * 3600000ULL) +
+                  (myGPS.getMinute() * 60000ULL) +
+                  (myGPS.getSecond() * 1000ULL);
+
+        lastAbsTime = absTime;  // Store last valid GPS time
+    } 
+    else if (satsmode) 
+    {
+        Serial.println("Waiting for satellites, found: " + String(sats));
+        delay(10000);  // Avoid calling updateTime() too often
+    } 
+    else 
+    {
+        // Internal clock mode
+        if (millisAtSync == 0) {
+            millisAtSync = millis();
+            absTime = millis();
+        } else {
+            absTime = lastAbsTime + (millis() - millisAtSync);
+        }
+    }
+  }
+
+  int getTime()
+  {
+    landingTime = millis(); //myGPS.getHour()*3600 + myGPS.getMinute()*60 + myGPS.getSecond();
   }
 
     bool timer() //determines if 300 secconds (5 min) have passed since landing
   {
-    return true; //(300 >= getTime() - LandingTime); will use remote shutdown during testing and maybe full scale flight (will have auto for final)
+    if(landingTime + millis() > 290)
+    {
+      return false; //(300 >= getTime() - LandingTime); will use remote shutdown during testing and maybe full scale flight (will have auto for final)
+    }
+    return true;
   }
 
   void recordTemperature() //records the temperature of the landing site
@@ -621,7 +663,7 @@ void loop(void)
         {
            currentState = nextState;
            nextState = LAND;
-           snprintf(StatusMessage, sizeof(StatusMessage), "State PAD -> FLIGHT| Current Alt Change: %.2f m", Altitude);
+           snprintf(StatusMessage, sizeof(StatusMessage), "State PAD -> FLIGHT| Current Alt: %.2f m", Altitude);
            sendStatus();
            stableCounter = 0;
            recordTemperature();
@@ -656,8 +698,8 @@ void loop(void)
           calculateLandingVelocity();
           currentState = nextState;
           nextState = TRANSMIT;
-          snprintf(StatusMessage, sizeof(StatusMessage), "State FLIGHT -> LAND| Current Alt Change: %.2f m", Altitude);
-          sendStatus();   
+          snprintf(StatusMessage, sizeof(StatusMessage), "State FLIGHT -> LAND| Current Alt: %.2f m", Altitude);
+          sendStatus();
         }
             
       }
@@ -692,11 +734,11 @@ void loop(void)
       if(timer())
       {
         transmitData();
-        currentState = SHUTDOWN;
       }
       else
       {
         currentState = nextState;
+        currentState = SHUTDOWN;
       }
 
       if(getShutdownStatus())
