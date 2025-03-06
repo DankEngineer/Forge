@@ -93,13 +93,21 @@ float Orientation_W = 100.0;
 float Orientation_X = 100.0;
 float Orientation_Y = 100.0;
 float Orientation_Z = 100.0;
-String time = "";
 float landingTime = 0.0;
 float Temperature = -694.20;
 int BatteryStatus = 1;
 float GThreshold = 25.0;
 float LandingVelocityThreshold = 15.24;
 String Survival = "";
+float timeSinceBoot = 0.0;
+float absTime = 0.0;
+String absTimeStr = "";
+int month = 0;
+int day = 0;
+int year = 0;
+int sats = 0;
+bool GpsFirstFix = false;
+int stableCounter = 0;
 
 //set at location
 float StartAltitude = 0.0;
@@ -190,7 +198,75 @@ void setup()
       getAltitude();
       getAltitude();
       StartAltitude = bmp.readAltitude();
+    //initGps();// initializes gps and waits till satalites are found
 
+  
+}
+
+bool waitSats()
+{
+  while(sats != 0)
+  {
+    SerialUSB.println("No Sats");
+  }
+}
+
+
+
+  void initGps()
+  {
+    gpsStart();
+    setupUBloxDynamicModel();
+    GpsON;
+    waitSats();
+      if (myGPS.getPVT())
+      {
+        if ( (myGPS.getFixType() != 0) && (myGPS.getSIV() > 3) ) 
+        {
+          GpsInvalidTime=0;
+          GpsFirstFix = true;
+          ublox_high_alt_mode_enabled = false; //gps sleep mode resets high altitude mode.
+          SerialUSB.flush();         
+        }
+      }
+    sats = myGPS.getSIV();
+  }
+
+
+
+
+  void setupUBloxDynamicModel() 
+  {
+    // If we are going to change the dynamic platform model, let's do it here.
+    // Possible values are:
+    // PORTABLE, STATIONARY, PEDESTRIAN, AUTOMOTIVE, SEA, AIRBORNE1g, AIRBORNE2g, AIRBORNE4g, WRIST, BIKE
+    // DYN_MODEL_AIRBORNE4g model increases ublox max. altitude limit from 12.000 meters to 50.000 meters. 
+    if (myGPS.setDynamicModel(DYN_MODEL_AIRBORNE4g)) // Set the dynamic model to DYN_MODEL_AIRBORNE4g
+    {
+      ublox_high_alt_mode_enabled = true;
+    }
+  
+  } 
+
+  void gpsStart()
+  {  
+  bool gpsBegin=false;  
+  while(!gpsBegin)
+  {
+    GpsON;
+    delay(1000);
+    Wire.begin();
+    gpsBegin=myGPS.begin();
+    if(gpsBegin)break;
+    GpsOFF; 
+    delay(2000);
+  }
+   // do not overload the buffer system from the GPS, disable UART output
+  myGPS.setUART1Output(0); //Disable the UART1 port output 
+  myGPS.setUART2Output(0); //Disable Set the UART2 port output
+  myGPS.setI2COutput(COM_TYPE_UBX); //Set the I2C port to output UBX only (turn off NMEA noise)
+  myGPS.saveConfiguration(); //Save the current settings to flash and BBR  
+  gpsSetup=true;
 }
 
 void setReports() 
@@ -352,9 +428,30 @@ void sendStatus() //send statusmessage char array
     Velocity = (getChangeInAltitude()*frq); //velocity = (change in position (vertical))/(change in time)
   }
 
-    void recordTime() //sets landing time in format of MM/DD/YYYY|HH:MM:SS.NANO(includesMilisecconds) 
+  void recordTime() //sets landing time in format of MM/DD/YYYY|HH:MM:SS.NANO(includesMilisecconds) 
   {
-    time = "00:00:00.00"; //myGPS.getHour():myGPS.getMinute():myGPS.getSecond(); gps no need for testing wont get signal, will have better solution using internal clock updated by satalite or computer before final launch
+    int hour = (absTime/3600.0 - fmod(absTime,3600.0));
+    int min = (fmod(absTime,3600.0) - fmod(absTime,60.0));
+    int sec = fmod(absTime,60.0);
+    
+     //creates date string using internal clock updated by satalie
+    absTimeStr = ("" + String(month) + "-" + String(day) + "-" + String(year) + ":" + String(hour) + ":" + String(min) + ":" + String(sec) + "");
+  }
+
+  void updateTime()
+  {
+    if(sats>0)
+    {
+      month = myGPS.getMonth();
+      day = myGPS.getDay();
+      year = myGPS.getYear();
+      absTime = myGPS.getHour()*60*60 + myGPS.getMinute()*60 + myGPS.getSecond() + millis()/1000; //update absolute time from satalite
+    }
+    else
+    {
+      updateTime();
+    }
+    
   }
 
     int getTime()
@@ -476,7 +573,7 @@ void sendStatus() //send statusmessage char array
 
     snprintf(StatusMessage, sizeof(StatusMessage), 
              "B| Time: %s /MVel: %.2f /LaVel: %.2f /MGfrc: %.2f /Survl: %s", 
-             time.c_str(), MaxVelocity, LandingVelocity, MaxGForce, Survival.c_str());
+             absTimeStr.c_str(), MaxVelocity, LandingVelocity, MaxGForce, Survival.c_str());
     sendStatus();
     delay(50000);
 
@@ -519,11 +616,20 @@ void loop(void)
       
       if(getChangeInAltitude() >= 10) //if altitude change is significant enough (not just moving rocket around but an actual liftoff) go to flight stage
       {
-        currentState = nextState;
-        nextState = LAND;
-        snprintf(StatusMessage, sizeof(StatusMessage), "State PAD| Current Alt Change: %.2f m", getChangeInAltitude());
-        sendStatus();
-        recordTemperature();
+        stableCounter++;
+        if(stableCounter>2)
+        {
+           currentState = nextState;
+           nextState = LAND;
+           snprintf(StatusMessage, sizeof(StatusMessage), "State PAD| Current Alt Change: %.2f m", getChangeInAltitude());
+           sendStatus();
+           stableCounter = 0;
+           recordTemperature();
+         }
+         else if(getChangeInAltitude() <= 8)
+         {
+          stableCounter--;
+         }
       }
 
       if(getShutdownStatus())
@@ -542,12 +648,23 @@ void loop(void)
       
       if((getChangeInAltitude() <= 2) && currentAltitude() < 304.8) //checks for conditions signifying that landing has happened (304.8m = 1000ft)
       {
-        recordTime();
-        calculateLandingVelocity();
-        currentState = nextState;
-        nextState = TRANSMIT;
-        snprintf(StatusMessage, sizeof(StatusMessage), "State FLIGHT| Current Alt Change: %.2f m", getChangeInAltitude());
-        sendStatus();
+        stableCounter++;
+        if(stableCounter>2)
+        {
+          stableCounter = 0;
+          recordTime();
+          calculateLandingVelocity();
+          currentState = nextState;
+          nextState = TRANSMIT;
+          snprintf(StatusMessage, sizeof(StatusMessage), "State FLIGHT| Current Alt Change: %.2f m", getChangeInAltitude());
+          sendStatus();   
+        }
+        else if(getChangeInAltitude() >= 5)
+        {
+         stableCounter--;
+        }
+            
+        
       }
 
       if(getShutdownStatus())
