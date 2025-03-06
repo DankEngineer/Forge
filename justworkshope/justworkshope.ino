@@ -108,6 +108,7 @@ int year = 0;
 int sats = 0;
 bool GpsFirstFix = false;
 int stableCounter = 0;
+int remoteShutoffCounter = 0;
 
 //set at location
 float StartAltitude = 0.0;
@@ -470,7 +471,7 @@ void sendStatus() //send statusmessage char array
     for(int i = 0; i < 99; i++)
     {
         int sensorValue = analogRead(A1);
-        float voltage = sensorValue * (3.3/1024.0);// Convert the analog reading (which goes from 0 - 1023) to a voltage (0 - 5V)
+        float voltage = sensorValue * (1.6/1024.0);// Convert the analog reading (which goes from 0 - 1023) to a voltage (0 - 5V)
         float temp = (voltage - 0.5)*100;
         temptemp += temp;
     }
@@ -522,7 +523,7 @@ void sendStatus() //send statusmessage char array
 
   }
 
-  float oldgetTemp()
+  float getTemp()
   {
       int sensorValue = analogRead(A1);
         float voltage = sensorValue * (1.6/1024.0);// Convert the analog reading (which goes from 0 - 1023) to a voltage (0 - 5V)
@@ -530,37 +531,26 @@ void sendStatus() //send statusmessage char array
   }
 
 
-  float getTemp()
-  {
-        int sensorValue = 0;
-        float voltage = 0.0;
-        float AvgVlt = 0;
-        for (int i = 0; i <=99 ; i++) {
-          //read analog signal
-          sensorValue = analogRead(A1);
-          //convert bits to voltage
-          voltage = sensorValue*(1.6/1024.0);
-          //sum the voltages
-          AvgVlt = voltage + AvgVlt;
-         delay(1);
-        }
-        //average the voltages
-        AvgVlt = AvgVlt/100;
-        //convert to temperature
-        float Temp = (AvgVlt - 0.5)*100;
-        //return the temperature
-        return Temp;
-  }
-
   bool getShutdownStatus() //uses dutycycle to determine whether should shutdown
   {
+    if(remoteShutoffCounter > 0)
+    {
+      remoteShutoffCounter--;
+      return false;
+    }
+    else if(pulseIn(A2,HIGH) == 0)
+    {
+        remoteShutoffCounter = 1000;
+        return false;
+    }
+    else
     return pulseIn(A2,HIGH) > 1500;
   }
 
 
-  void shutdown() //shutdown is sumulated with a 10 second pause
+  void shutdown() //shutdown is sumulated with a 100 second pause
   {
-    delay(10000);
+    delay(100000);
   }
 
   void transmitData()
@@ -612,25 +602,25 @@ void loop(void)
     case PAD:
     {
       getAltitude();
-      SerialUSB.println("PAD|Alt: " + String(Altitude) + " tempnew: " + getTemp() + " tempold: " + oldgetTemp() + " Pulse in: " + pulseIn(A2,HIGH) +" absAlt: " + getAbsAltitude() );
+      SerialUSB.println("PAD|Alt: " + String(Altitude) + " temp: " + getTemp() +" absAlt: " + getAbsAltitude() + " stabilitycount: " + stableCounter);
       
-      if(getChangeInAltitude() >= 10) //if altitude change is significant enough (not just moving rocket around but an actual liftoff) go to flight stage
+      if(getChangeInAltitude() >= 5) //if altitude change is significant enough (not just moving rocket around but an actual liftoff) go to flight stage
       {
         stableCounter++;
-        if(stableCounter>2)
+        if(stableCounter>10)
         {
            currentState = nextState;
            nextState = LAND;
-           snprintf(StatusMessage, sizeof(StatusMessage), "State PAD| Current Alt Change: %.2f m", getChangeInAltitude());
+           snprintf(StatusMessage, sizeof(StatusMessage), "State PAD -> FLIGHT| Current Alt Change: %.2f m", Altitude);
            sendStatus();
            stableCounter = 0;
            recordTemperature();
          }
-         else if(getChangeInAltitude() <= 8)
+      }
+      else if(getChangeInAltitude() <= 3 && stableCounter > 0 )
          {
           stableCounter--;
          }
-      }
 
       if(getShutdownStatus())
       {
@@ -649,23 +639,23 @@ void loop(void)
       if((getChangeInAltitude() <= 2) && currentAltitude() < 304.8) //checks for conditions signifying that landing has happened (304.8m = 1000ft)
       {
         stableCounter++;
-        if(stableCounter>2)
+        if(stableCounter>10)
         {
           stableCounter = 0;
           recordTime();
           calculateLandingVelocity();
           currentState = nextState;
           nextState = TRANSMIT;
-          snprintf(StatusMessage, sizeof(StatusMessage), "State FLIGHT| Current Alt Change: %.2f m", getChangeInAltitude());
+          snprintf(StatusMessage, sizeof(StatusMessage), "State FLIGHT -> LAND| Current Alt Change: %.2f m", Altitude);
           sendStatus();   
         }
-        else if(getChangeInAltitude() >= 5)
+            
+      }
+
+      else if(getChangeInAltitude() >= 5 && stableCounter > 0)
         {
          stableCounter--;
         }
-            
-        
-      }
 
       if(getShutdownStatus())
       {
@@ -680,7 +670,7 @@ void loop(void)
       recordOrientation();
       recordBatteryStatus();
       calculateSurvivalChance();
-      snprintf(StatusMessage, sizeof(StatusMessage), "state LAND");
+      snprintf(StatusMessage, sizeof(StatusMessage), "State LAND -> TRNASMIT| Current Alt Change: %.2f m", Altitude);
       sendStatus();
       currentState = nextState;
       nextState = SHUTDOWN; //no shutdown check because will never stay in this state
@@ -708,6 +698,8 @@ void loop(void)
 
     case SHUTDOWN:
     {
+      snprintf(StatusMessage, sizeof(StatusMessage), "Shutdown Activated");
+      sendStatus();
       shutdown();
       break;
     }
