@@ -69,7 +69,14 @@ int16_t   GpsResetTime=1800; // timeout for reset if GPS is not fixed
 boolean ublox_high_alt_mode_enabled = false; //do not change this
 int16_t GpsInvalidTime=0; //do not change this
 boolean gpsSetup=false; //do not change this.
-bool satsmode = false;//use satalites or no
+bool satsmode = false;//use gps(satalites) or no
+//manual synching (if no satalites)
+int Monthmany = 3;
+int Daymany = 8;
+int Yearmany = 2025;
+int newHourmany = 12;// out of 24 ("military time")
+int Minmany = 1;
+int Secmany = 30;
 
 //********************************************************************************
 SFE_UBLOX_GPS myGPS;
@@ -210,6 +217,10 @@ void setup()
     {
       initGps(); //initializes gps 
       updateTime();//waits till satalites are found and updates time and date
+    }
+    else
+    {
+      manualSync(Monthmany, Daymany, Yearmany,newHourmany, Minmany, Secmany);
     }
 
   
@@ -502,6 +513,28 @@ void sendStatus() //send statusmessage char array
         }
     }
   }
+
+  // Function to manually sync time
+  void manualSync(int newMonth, int newDay, int newYear, int newHour, int newMin, int newSec) 
+  {
+    month = newMonth;
+    day = newDay;
+    year = newYear;
+
+    // Set absolute time based on manual input
+    absTime = (newHour * 3600000ULL) +
+              (newMin * 60000ULL) +
+              (newSec * 1000ULL);
+
+    // Store sync reference
+    static unsigned long long millisAtSync = millis();
+    static unsigned long long lastAbsTime = absTime;
+
+    Serial.println("Manual time set: " + absTimeStr);
+  }
+
+
+
 
   int getTime()
   {
