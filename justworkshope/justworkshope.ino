@@ -198,15 +198,20 @@ void setup()
       getAltitude();//priming altitude change
       getAltitude();
       getAltitude();
-      StartAltitude = bmp.readAltitude();
-    //initGps();// initializes gps and waits till satalites are found
-
+      float tempalt = 0;
+      for(int i = 0; i<99; i++)
+      {
+        tempalt += bmp.readAltitude();
+      }
+      StartAltitude = tempalt/100;
+    initGps();// initializes gps and waits till satalites are found
+    updateTime();
   
 }
 
-bool waitSats()
+void waitSats()
 {
-  while(sats != 0)
+  while(sats > 0)
   {
     SerialUSB.println("No Sats");
   }
@@ -217,6 +222,7 @@ bool waitSats()
   void initGps()
   {
     gpsStart();
+    SerialUSB.println("gpsStart() success");
     setupUBloxDynamicModel();
     GpsON;
     waitSats();
@@ -256,6 +262,7 @@ bool waitSats()
   {
     GpsON;
     delay(1000);
+    SerialUSB.println("Initialzing Gps...");
     Wire.begin();
     gpsBegin=myGPS.begin();
     if(gpsBegin)break;
@@ -443,6 +450,7 @@ void sendStatus() //send statusmessage char array
   {
     if(sats>0)
     {
+      SerialUSB.println("sats found: " + String(sats));
       month = myGPS.getMonth();
       day = myGPS.getDay();
       year = myGPS.getYear();
@@ -450,6 +458,8 @@ void sendStatus() //send statusmessage char array
     }
     else
     {
+      SerialUSB.println("sats found: " + String(sats));
+      delay(10000);
       updateTime();
     }
     
