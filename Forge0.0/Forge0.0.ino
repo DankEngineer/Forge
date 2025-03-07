@@ -75,9 +75,9 @@ bool satsmode = false;//use gps(satalites) or no
 int Monthmany = 3;
 int Daymany = 8;
 int Yearmany = 2025;
-int Hourmany = 0;// out of 24 ("military time")
-int Minmany = 0;
-int Secmany = 0;
+int Hourmany = 11;// out of 24 ("military time")
+int Minmany = 29;
+int Secmany = 15;
 
 //********************************************************************************
 SFE_UBLOX_GPS myGPS;
@@ -105,7 +105,7 @@ float Orientation_W = 100.0;
 float Orientation_X = 100.0;
 float Orientation_Y = 100.0;
 float Orientation_Z = 100.0;
-float landingTime = 0.0;
+long long landingTime = 0;
 float Temperature = -694.20;
 int BatteryStatus = 1;
 float GThreshold = 25.0;
@@ -122,6 +122,9 @@ int stableCounter = 0;
 int remoteShutoffCounter = 0;
 String Survival = "";
 float absalt =0.0;
+static unsigned long long millisAtSync = 0;
+    
+static unsigned long long lastAbsTime = 0;
 
 
 //set at location
@@ -235,7 +238,7 @@ void setup()
     }
     else
     {
-      manualSync(Monthmany, Daymany, Yearmany,Hourmany, Minmany, Secmany);
+      manualSync();
     }
   //snprintf(StatusMessage, sizeof(StatusMessage), "Begin");
           // sendStatus();
@@ -256,6 +259,18 @@ void resetI2C()
   Wire.begin();  // Reinitialize the I2C bus
 }
 
+  void stupidtimefix()
+  {
+      month = Monthmany;
+    day = Daymany;
+    year = Yearmany;
+
+    // Set absolute time based on manual input
+    absTime = (Hourmany * 3600000) +
+              (Minmany * 60000) +
+              (Secmany * 1000) + millis();
+    landingTime = millis();
+  }
 
 
   void initGps()
@@ -385,10 +400,10 @@ void sendStatus() //send statusmessage char array
   PttON;
   delay(1000);
   APRS_sendStatus(StatusMessage);
-  delay(10);
+  delay(1000);
   PttOFF;
   RadioOFF;
-  delay(1000);
+  delay(100);
   SerialUSB.print(F("Status sent - "));
   SerialUSB.println(TxCount);
   TxCount++;
@@ -497,8 +512,8 @@ void sendStatus() //send statusmessage char array
 
   void updateTime() 
   {
-    static unsigned long long millisAtSync = 0;
-    static unsigned long long lastAbsTime = 0;
+    millisAtSync = 0;
+    lastAbsTime = 0;
 
     if (sats > 0) 
     {
@@ -513,9 +528,9 @@ void sendStatus() //send statusmessage char array
         millisAtSync = millis();
 
         // Compute absolute time in milliseconds
-        absTime = (myGPS.getHour() * 3600000ULL) +
-                  (myGPS.getMinute() * 60000ULL) +
-                  (myGPS.getSecond() * 1000ULL);
+        absTime = (myGPS.getHour() * 3600000) +
+                  (myGPS.getMinute() * 60000) +
+                  (myGPS.getSecond() * 1000);
 
         lastAbsTime = absTime;  // Store last valid GPS time
     } 
@@ -537,20 +552,20 @@ void sendStatus() //send statusmessage char array
   }
 
   // Function to manually sync time
-  void manualSync(int newMonth, int newDay, int newYear, int newHour, int newMin, int newSec) 
+  void manualSync() 
   {
-    month = newMonth;
-    day = newDay;
-    year = newYear;
+    month = Monthmany;
+    day = Daymany;
+    year = Yearmany;
 
     // Set absolute time based on manual input
-    absTime = (newHour * 3600000ULL) +
-              (newMin * 60000ULL) +
-              (newSec * 1000ULL);
+    absTime = (Hourmany * 3600000) +
+              (Minmany * 60000) +
+              (Secmany * 1000);
 
     // Store sync reference
-    static unsigned long long millisAtSync = millis();
-    static unsigned long long lastAbsTime = absTime;
+    millisAtSync = millis();
+    lastAbsTime = absTime;
 
     Serial.println("Manual time set: " + absTimeStr);
   }
@@ -591,10 +606,12 @@ void sendStatus() //send statusmessage char array
 
     bool timer() //determines if 300 secconds (5 min) have passed since landing
   {
-    if(landingTime + millis() > 290)
+    if( millis() - landingTime > 290000)
     {
       return false; //(300 >= getTime() - LandingTime); will use remote shutdown during testing and maybe full scale flight (will have auto for final)
+ 
     }
+    SerialUSB.println((millis() - landingTime)/1000);
     return true;
   }
 
@@ -701,8 +718,10 @@ void sendStatus() //send statusmessage char array
     sendStatus();
     delay(500);
 
+    SerialUSB.println(Survival);
+
     snprintf(StatusMessage, sizeof(StatusMessage), 
-             "B| Time: %s /MVel: %.2f /LaVel: %.2f /MGfrc: %.2f /Svl: %s", 
+             "B| Time: %s /MxVl: %.2f /LaVl: %.2f /MxG: %.2f /Svl: %s", 
              absTimeStr.c_str(), MaxVelocity, LandingVelocity, MaxGForce, Survival.c_str());
     sendStatus();
     delay(1000);
@@ -786,6 +805,7 @@ void loop(void)
         if(stableCounter>10)
         {
           stableCounter = 0;
+          stupidtimefix();
           recordTime();
           calculateLandingVelocity();
           currentState = nextState;
@@ -822,7 +842,6 @@ void loop(void)
       }
       recordBatteryStatus();
       calculateSurvivalChance();
-      updateTime();
       snprintf(StatusMessage, sizeof(StatusMessage), "State LAND -> TRNASMIT| Current Alt Change: %.2f m", Altitude);
       sendStatus();
       currentState = nextState;
@@ -832,7 +851,7 @@ void loop(void)
 
     case TRANSMIT:
     {
-      if(true)
+      if(true)//timer()
       {
         transmitData();
       }
