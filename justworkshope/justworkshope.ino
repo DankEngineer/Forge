@@ -91,6 +91,7 @@ float OldAltitude = 0.0;
 float Altitude = 0.0; 
 const float frq = 20;
 CircularBuffer<float, 20> accels;
+CircularBuffer<float, 100> alts;
 float LandingVelocity = -999.0;
 float Apogee = -690000.0;
 float Gforce = 0.0;
@@ -117,6 +118,7 @@ bool GpsFirstFix = false;
 int stableCounter = 0;
 int remoteShutoffCounter = 0;
 String Survival = "";
+float absalt =0.0;
 
 
 //set at location
@@ -204,15 +206,16 @@ void setup()
     while(1);
   }
   setReports();
+      for(int i = 0; i<100; i++)//filling moving avg method
+      {
+        mooveMe();
+      }
+      
+      
       getAltitude();//priming altitude change
       getAltitude();
       getAltitude();
-      float tempalt = 0;
-      for(int i = 0; i<99; i++)
-      {
-        tempalt += bmp.readAltitude();
-      }
-      StartAltitude = tempalt/100;
+     reZero();
     if(satsmode)
     {
       initGps(); //initializes gps 
@@ -404,7 +407,7 @@ void sendStatus() //send statusmessage char array
     void getAltitude() //moves curent altitude to OldAltitude then gets new value from BMP
   {
     OldAltitude = Altitude;
-    Altitude = bmp.readAltitude();
+    Altitude = getAbsAltitude();
   }
 
   float currentAltitude()//returns current altitude
@@ -532,7 +535,33 @@ void sendStatus() //send statusmessage char array
 
     Serial.println("Manual time set: " + absTimeStr);
   }
-
+  void reZero()
+  {
+  delay(5000);
+  float tempalt = 0;
+     for(int i = 0; i<99; i++) //seting starting alt using avg of 1000 points
+      {
+        float billy = bmp.readAltitude();
+        tempalt += billy;
+        SerialUSB.print("ReZero: ");
+        SerialUSB.println(billy);
+      }
+     StartAltitude = tempalt/100;
+     SerialUSB.println(StartAltitude);
+  }
+  float sum = 0;
+  float mooveMe() // moving avg over 100 points
+  {
+    float valuee = bmp.readAltitude(); //m to ft
+   sum += valuee;
+   alts.push(valuee);
+   if(alts.size()>99)
+   {
+     sum -= alts.first();
+     return sum/100;
+   }
+   return bmp.readAltitude();
+  }
 
 
 
@@ -654,11 +683,13 @@ void sendStatus() //send statusmessage char array
 
  }
 
-float getAbsAltitude(){
+  float getAbsAltitude()
+  {
+    absalt = mooveMe() - StartAltitude;
+    return absalt;
+  }
 
-  return (bmp.readAltitude()- StartAltitude);
 
-}
 
 
 
@@ -689,10 +720,10 @@ void loop(void)
       getAltitude();
       SerialUSB.println("PAD|Alt: " + String(Altitude) + " temp: " + getTemp() +" absAlt: " + getAbsAltitude() + " stabilitycount: " + stableCounter);
       
-      if(getChangeInAltitude() >= 5) //if altitude change is significant enough (not just moving rocket around but an actual liftoff) go to flight stage
-      {
+      if(getChangeInAltitude() >= 5 || Altitude > 10 ) //if altitude change is significant enough (not just moving rocket around but an actual liftoff) go to flight stage
+      {//failsafe added with threshold of ___ m
         stableCounter++;
-        if(stableCounter>10)
+        if(stableCounter>10 || Altitude > 10 )
         {
            currentState = nextState;
            nextState = LAND;
