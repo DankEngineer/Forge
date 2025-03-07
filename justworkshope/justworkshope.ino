@@ -74,9 +74,9 @@ bool satsmode = false;//use gps(satalites) or no
 int Monthmany = 3;
 int Daymany = 8;
 int Yearmany = 2025;
-int newHourmany = 12;// out of 24 ("military time")
-int Minmany = 1;
-int Secmany = 30;
+int Hourmany = 0;// out of 24 ("military time")
+int Minmany = 0;
+int Secmany = 0;
 
 //********************************************************************************
 SFE_UBLOX_GPS myGPS;
@@ -89,14 +89,14 @@ BNO08x mBNO085;
 float OldAltitude = 0.0;
 //DO NOT CALL A THE ALTIMETER HERE (calling bmp.readAltitude() screwed stuff up)
 float Altitude = 0.0; 
-const float frq = 20;
+const float frq = 25;
 CircularBuffer<float, 50> accels;
 CircularBuffer<float, 100> alts;
 float LandingVelocity = -999.0;
 float Apogee = -690000.0;
 float Gforce = 0.0;
 float MaxGForce = -999.0;
-float Velocity = 0.0;
+float Velocity = -999.0;
 float MaxVelocity = -999.0;
 float Orientation_W = 100.0;
 float Orientation_X = 100.0;
@@ -223,9 +223,10 @@ void setup()
     }
     else
     {
-      manualSync(Monthmany, Daymany, Yearmany,newHourmany, Minmany, Secmany);
+      manualSync(Monthmany, Daymany, Yearmany,Hourmany, Minmany, Secmany);
     }
-
+  snprintf(StatusMessage, sizeof(StatusMessage), "Begin");
+           sendStatus();
   
 }
 
@@ -453,7 +454,7 @@ void sendStatus() //send statusmessage char array
     void getVelocity() //gets new Velocity from change in altitude devided by time
     {
     getAltitude();
-    Velocity = (getChangeInAltitude()*(1/frq)); //velocity = (change in position (vertical))/(change in time)
+    Velocity = (getChangeInAltitude()*(frq)); //velocity = (change in position (vertical))/(change in time)
     }
 
   void recordTime() 
@@ -679,7 +680,7 @@ void sendStatus() //send statusmessage char array
              "B| Time: %s /MVel: %.2f /LaVel: %.2f /MGfrc: %.2f /Survl: %s", 
              absTimeStr.c_str(), MaxVelocity, LandingVelocity, MaxGForce, Survival.c_str());
     sendStatus();
-    delay(50000);
+    delay(1000);
 
  }
 
@@ -720,7 +721,7 @@ void loop(void)
       getAltitude();
       SerialUSB.println("PAD|Alt: " + String(Altitude) + " temp: " + getTemp() +" absAlt: " + getAbsAltitude() + " stabilitycount: " + stableCounter);
       
-      if(getChangeInAltitude() >= 5 || Altitude > 152.4 ) //if altitude change is significant enough (not just moving rocket around but an actual liftoff) go to flight stage
+      if(getChangeInAltitude() >= 5 || Altitude > 3 ) //if altitude change is significant enough (not just moving rocket around but an actual liftoff) go to flight stage
       {//failsafe added with threshold of 152.4 m
         stableCounter++;
         if(stableCounter>10)
@@ -752,8 +753,8 @@ void loop(void)
       isMaxVelocity();
       SerialUSB.println("Flight| Alt: " + String(Altitude) + " G: " + String(Gforce) + " Vel: " + String(Velocity) + " Temp: " + Temperature +"");
       
-      if(((getChangeInAltitude() <= 2) && currentAltitude() < 304.8) ||  6.1 > abs(Altitude) ) //checks for conditions signifying that landing has happened (304.8m = 1000ft)
-      {//threshold should be 6.1
+      if(((getChangeInAltitude() <= 2) && currentAltitude() < -304.8) ||  1 > abs(Altitude) ) //checks for conditions signifying that landing has happened (304.8m = 1000ft)
+      {//threshold should be 6.1 
         stableCounter++;
         if(stableCounter>10)
         {
@@ -786,6 +787,7 @@ void loop(void)
       recordOrientation();
       recordBatteryStatus();
       calculateSurvivalChance();
+      updateTime();
       snprintf(StatusMessage, sizeof(StatusMessage), "State LAND -> TRNASMIT| Current Alt Change: %.2f m", Altitude);
       sendStatus();
       currentState = nextState;
@@ -795,7 +797,7 @@ void loop(void)
 
     case TRANSMIT:
     {
-      if(timer())
+      if(true)
       {
         transmitData();
       }
