@@ -90,7 +90,7 @@ float OldAltitude = 0.0;
 //DO NOT CALL A THE ALTIMETER HERE (calling bmp.readAltitude() screwed stuff up)
 float Altitude = 0.0; 
 const float frq = 20;
-CircularBuffer<float, 20> accels;
+CircularBuffer<float, 50> accels;
 CircularBuffer<float, 100> alts;
 float LandingVelocity = -999.0;
 float Apogee = -690000.0;
@@ -720,10 +720,10 @@ void loop(void)
       getAltitude();
       SerialUSB.println("PAD|Alt: " + String(Altitude) + " temp: " + getTemp() +" absAlt: " + getAbsAltitude() + " stabilitycount: " + stableCounter);
       
-      if(getChangeInAltitude() >= 5 || Altitude > 10 ) //if altitude change is significant enough (not just moving rocket around but an actual liftoff) go to flight stage
-      {//failsafe added with threshold of ___ m
+      if(getChangeInAltitude() >= 5 || Altitude > 152.4 ) //if altitude change is significant enough (not just moving rocket around but an actual liftoff) go to flight stage
+      {//failsafe added with threshold of 152.4 m
         stableCounter++;
-        if(stableCounter>10 || Altitude > 10 )
+        if(stableCounter>10)
         {
            currentState = nextState;
            nextState = LAND;
@@ -752,8 +752,8 @@ void loop(void)
       isMaxVelocity();
       SerialUSB.println("Flight| Alt: " + String(Altitude) + " G: " + String(Gforce) + " Vel: " + String(Velocity) + " Temp: " + Temperature +"");
       
-      if((getChangeInAltitude() <= 2) && currentAltitude() < 304.8) //checks for conditions signifying that landing has happened (304.8m = 1000ft)
-      {
+      if(((getChangeInAltitude() <= 2) && currentAltitude() < 304.8) ||  6.1 > abs(Altitude) ) //checks for conditions signifying that landing has happened (304.8m = 1000ft)
+      {//threshold should be 6.1
         stableCounter++;
         if(stableCounter>10)
         {
