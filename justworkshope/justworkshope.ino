@@ -107,7 +107,7 @@ float Temperature = -694.20;
 int BatteryStatus = 1;
 float GThreshold = 25.0;
 float LandingVelocityThreshold = 15.24;
-
+float valuee = 0.0;
 long long absTime = 0;
 String absTimeStr = "";
 int month = 3;
@@ -127,11 +127,11 @@ float StartAltitude = 0.0;
 
 
 
-//
+
 void setup() 
 {
- 
-
+   Wire.end();
+  Wire.begin();
   // While the energy rises slowly with the solar panel, 
   // using the analog reference low solves the analog measurement errors.
   analogReference(AR_INTERNAL1V65);
@@ -171,7 +171,7 @@ void setup()
 
   configDra818(Frequency);
 
-  Wire.begin();
+
   bmp.begin();
 
   SerialUSB.println(F(""));
@@ -205,7 +205,9 @@ void setup()
     SerialUSB.print("BNO085 not detected at default I2C address.");
     while(1);
   }
-  setReports();
+
+  mBNO085.softReset();
+
       for(int i = 0; i<100; i++)//filling moving avg method
       {
         mooveMe();
@@ -215,7 +217,8 @@ void setup()
       getAltitude();//priming altitude change
       getAltitude();
       getAltitude();
-     reZero();
+      reZero();
+      setReports();
     if(satsmode)
     {
       initGps(); //initializes gps 
@@ -225,9 +228,9 @@ void setup()
     {
       manualSync(Monthmany, Daymany, Yearmany,Hourmany, Minmany, Secmany);
     }
-  snprintf(StatusMessage, sizeof(StatusMessage), "Begin");
-           sendStatus();
-  
+  //snprintf(StatusMessage, sizeof(StatusMessage), "Begin");
+          // sendStatus();
+      setReports();
 }
 
 void waitSats()
@@ -236,6 +239,12 @@ void waitSats()
   {
     SerialUSB.println("No Sats");
   }
+}
+void resetI2C()
+{
+  Wire.end();  // End the current I2C session
+  delay(100);  // Wait for a bit
+  Wire.begin();  // Reinitialize the I2C bus
 }
 
 
@@ -284,7 +293,6 @@ void waitSats()
     GpsON;
     delay(1000);
     SerialUSB.println("Initialzing Gps...");
-    Wire.begin();
     gpsBegin=myGPS.begin();
     if(gpsBegin)break;
     GpsOFF; 
@@ -302,13 +310,14 @@ void setReports()
 {
   if (mBNO085.enableGeomagneticRotationVector() == true) 
   {
-    Serial.println("Geomagnetic Rotation vector enabled");
+    SerialUSB.println("Geomagnetic Rotation vector enabled");
   } 
   else 
   {
-    Serial.println("Failed to enable geomagnetic rotation vector");
+    SerialUSB.println("Failed to enable geomagnetic rotation vector");
   }
 }
+
 void sleepSeconds(int sec) //sleep in secconds
 {
   PttOFF;
@@ -540,9 +549,9 @@ void sendStatus() //send statusmessage char array
   {
   delay(5000);
   float tempalt = 0;
-     for(int i = 0; i<99; i++) //seting starting alt using avg of 1000 points
+     for(int i = 0; i<100; i++) //seting starting alt using avg of 1000 points
       {
-        float billy = bmp.readAltitude();
+        float billy = mooveMe();
         tempalt += billy;
         SerialUSB.print("ReZero: ");
         SerialUSB.println(billy);
@@ -553,7 +562,7 @@ void sendStatus() //send statusmessage char array
   float sum = 0;
   float mooveMe() // moving avg over 100 points
   {
-    float valuee = bmp.readAltitude(); //m to ft
+    valuee = bmp.readAltitude(); 
    sum += valuee;
    alts.push(valuee);
    if(alts.size()>99)
@@ -597,6 +606,7 @@ void sendStatus() //send statusmessage char array
   {
   if (mBNO085.getSensorEvent() == true) 
   {
+    SerialUSB.println("bno got sensor event");
     // Check if we got geomagnetic rotation vector data
     if (mBNO085.getSensorEventID() == SENSOR_REPORTID_GEOMAGNETIC_ROTATION_VECTOR) 
     {    
@@ -604,6 +614,7 @@ void sendStatus() //send statusmessage char array
     	Orientation_X = mBNO085.getQuatI();
     	Orientation_Y = mBNO085.getQuatJ();
     	Orientation_Z = mBNO085.getQuatK();
+      SerialUSB.println("numbers changed");
 	  }
 	}
   }
@@ -718,18 +729,20 @@ void loop(void)
 	
     case PAD:
     {
+
       getAltitude();
-      SerialUSB.println("PAD|Alt: " + String(Altitude) + " temp: " + getTemp() +" absAlt: " + getAbsAltitude() + " stabilitycount: " + stableCounter);
       
-      if(getChangeInAltitude() >= 5 || Altitude > 3 ) //if altitude change is significant enough (not just moving rocket around but an actual liftoff) go to flight stage
+      SerialUSB.println("PAD| startAlt: " + String(StartAltitude) + " actual alt: " + String(valuee) +" absAlt: " + absalt + " stabilitycount: " + stableCounter);
+      
+      if(getChangeInAltitude() >= 5 || Altitude > 1 ) //if altitude change is significant enough (not just moving rocket around but an actual liftoff) go to flight stage
       {//failsafe added with threshold of 152.4 m
         stableCounter++;
         if(stableCounter>10)
         {
            currentState = nextState;
            nextState = LAND;
-           snprintf(StatusMessage, sizeof(StatusMessage), "State PAD -> FLIGHT| Current Alt: %.2f m", Altitude);
-           sendStatus();
+          // snprintf(StatusMessage, sizeof(StatusMessage), "State PAD -> FLIGHT| Current Alt: %.2f m", Altitude);
+          // sendStatus();
            stableCounter = 0;
            recordTemperature();
          }
@@ -763,8 +776,8 @@ void loop(void)
           calculateLandingVelocity();
           currentState = nextState;
           nextState = TRANSMIT;
-          snprintf(StatusMessage, sizeof(StatusMessage), "State FLIGHT -> LAND| Current Alt: %.2f m", Altitude);
-          sendStatus();
+         // snprintf(StatusMessage, sizeof(StatusMessage), "State FLIGHT -> LAND| Current Alt: %.2f m", Altitude);
+          //sendStatus();
         }
             
       }
@@ -784,7 +797,15 @@ void loop(void)
     case LAND:
     {
       recordTemperature();
-      recordOrientation();
+      while(Orientation_W == 100)
+      {
+          resetI2C();
+          SerialUSB.println("reset");
+          setReports();
+          SerialUSB.println("reports");
+          recordOrientation();
+          SerialUSB.println(Orientation_W);
+      }
       recordBatteryStatus();
       calculateSurvivalChance();
       updateTime();
