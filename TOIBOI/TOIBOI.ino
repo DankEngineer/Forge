@@ -766,7 +766,7 @@ void loop(void)
       
       SerialUSB.println("PAD| startAlt: " + String(StartAltitude) + " actual alt: " + String(valuee) +" absAlt: " + absalt + " stabilitycount: " + stableCounter);
       
-      if(getChangeInAltitude() >= 1.5 || Altitude > 152.4 ) //if altitude change is significant enough (not just moving rocket around but an actual liftoff) go to flight stage
+      if(getChangeInAltitude() >= .75 || Altitude > 3 ) //if altitude change is significant enough (not just moving rocket around but an actual liftoff) go to flight stage
       {//failsafe added with threshold of 152.4 m
         stableCounter++;
         if(stableCounter>15)
@@ -798,7 +798,7 @@ void loop(void)
       isMaxVelocity();
       SerialUSB.println("Flight| Alt:" + String(Altitude) + " G:" + String(Gforce) + " Vel:" + String(Velocity) + " Temp:" + Temperature +"");
       
-      if(((getChangeInAltitude() <= 0.75) ||  6.1 > abs(Altitude) ) //checks for conditions signifying that landing has happened (304.8m = 1000ft)
+      if((getChangeInAltitude() <= 0.75) ||  6.1 > abs(Altitude) ) //checks for conditions signifying that landing has happened (304.8m = 1000ft)
       {//threshold should be 6.1 //&& currentAltitude() < -152.4) 
         stableCounter++;
         if(stableCounter>15)
