@@ -240,8 +240,8 @@ void setup()
     {
       manualSync();
     }
-  //snprintf(StatusMessage, sizeof(StatusMessage), "Begin");
-          // sendStatus();
+  snprintf(StatusMessage, sizeof(StatusMessage), "Begin");
+           sendStatus();
       //setReports();
 }
 
