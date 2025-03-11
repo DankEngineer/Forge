@@ -150,7 +150,7 @@ void setup()
   GpsOFF;
   PttOFF;
   RadioOFF; 
-  RfLowPwr;
+  RfHiPwr;
 
   SerialUSB.begin(115200);
   // Wait up to 5 seconds for serial to be opened, to allow catching
