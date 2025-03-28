@@ -426,7 +426,7 @@ void sendStatus() //send statusmessage char array
     {
       lvl += (1/frq)*((accels.pop() - 1)); // accels is in erms of g force and -1 removes gravity which is than multiplied by 1/the frequency (time between points) to get velocity
     }
-    LandingVelocity = lvl;
+    LandingVelocity = lvl * 9.81;
   }
 
     void isMaxAltitude() //gets new altitude and checks it is greater than apogee, if so than replace
@@ -456,11 +456,11 @@ void sendStatus() //send statusmessage char array
     return sqrt(pow(event.acceleration.x,2.0f) + pow(event.acceleration.y,2.0f) + pow(event.acceleration.z,2.0f));
   }
 
-    void getGforce() //gets acceleration from high-g imu and devides by earth's gravity
+  void getGforce() //gets acceleration from high-g imu and devides by earth's gravity
   {
     float HighAccel = getHighGAcceleration();
-    Gforce = getHighGAcceleration() / 9.81f;
-    landingVelocityAddData(HighAccel);
+    Gforce = HighAccel / 9.81f;
+    landingVelocityAddData(Gforce);
   }
 
   

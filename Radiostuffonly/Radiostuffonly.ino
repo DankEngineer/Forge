@@ -38,8 +38,8 @@ char    comment[50] = "LightAPRS 2.0"; // Max 50 char but shorter is better.
 char    StatusMessage[50] = "LightAPRS 2.0 by TA2NHP & TA2MUN";
 //*****************************************************************************
 
-uint16_t  BeaconWait=50;  //seconds sleep for next beacon (HF or VHF). This is optimized value, do not change this if possible.
-uint16_t  BattWait=60;    //seconds sleep if super capacitors/batteries are below BattMin (important if power source is solar panel) 
+uint16_t  BeaconWait=10;  //seconds sleep for next beacon (HF or VHF). This is optimized value, do not change this if possible.
+int BattWait = 10;    //seconds sleep if super capacitors/batteries are below BattMin (important if power source is solar panel) 
 float     BattMin=3.3;    // min Volts to wake up.
 float     DraHighVolt=5.0;    // min Volts for radio module (DRA818V) to transmit (TX) 1 Watt, below this transmit 0.5 Watt.
 
