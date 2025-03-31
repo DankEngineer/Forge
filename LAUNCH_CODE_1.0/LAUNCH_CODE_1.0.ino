@@ -95,6 +95,7 @@ float Altitude = 0.0;
 const float frq = 25;
 CircularBuffer<float, 120> accels;
 CircularBuffer<float, 100> alts;
+CircularBuffer<float, 10> vels;
 float LandingVelocity = -999.0;
 float Apogee = -690000.0;
 float Gforce = 0.0;
@@ -111,7 +112,7 @@ int BatteryStatus = 1;
 float GThreshold = 25.0;
 float LandingVelocityThreshold = 15.24;
 float valuee = 0.0;
-long long absTime = 0;
+long long absTime = 0; // now stores flight duration in miliseconds
 String absTimeStr = "";
 int month = 3;
 int day = 8;
@@ -130,7 +131,11 @@ static unsigned long long lastAbsTime = 0;
 //set at location
 float StartAltitude = 0.0;
 
-
+//times
+unsigned long long launchTime = 0;
+unsigned long long landTime = 0;
+bool failsafed1 = false;
+bool failsafed2 = false;
 
 
 
@@ -220,10 +225,10 @@ void setup()
 
 //  mBNO085.softReset();
 
-//      for(int i = 0; i<100; i++)//filling moving avg method
-//      {
-//        mooveMe();
-//      }
+     for(int i = 0; i<100; i++)//filling moving avg method
+     {
+       mooveMe();
+     }
       
         delay(5000);//wait for altimiter to warm up or something
       getAltitude();//priming altitude change
@@ -266,9 +271,10 @@ void resetI2C()
     year = Yearmany;
 
     // Set absolute time based on manual input
-    absTime = (Hourmany * 3600000) +
-              (Minmany * 60000) +
-              (Secmany * 1000) + millis();
+    //absTime = (Hourmany * 3600000) +
+      //        (Minmany * 60000) +
+        //      (Secmany * 1000) + millis();
+    absTime = landTime - launchTime;
     landingTime = millis();
   }
 
@@ -486,8 +492,8 @@ void sendStatus() //send statusmessage char array
 
     void getVelocity() //gets new Velocity from change in altitude devided by time
     {
-    getAltitude();
-    Velocity = (getChangeInAltitude()*(frq)); //velocity = (change in position (vertical))/(change in time)
+      getAltitude();
+      Velocity = mooveMe(); //velocity = moving avg of 10 points calced by (change in position (vertical))/(change in time)
     }
 
   void recordTime() 
@@ -500,11 +506,8 @@ void sendStatus() //send statusmessage char array
     int second = absTim / 1000;
     int milli = absTim % 1000; 
     
-    // Format date and time as MM/DD/YYYY|HH:MM:SS.MS with proper zero-padding
-    absTimeStr = (String(month < 10 ? "0" : "") + String(month) + "/" +
-                  String(day < 10 ? "0" : "") + String(day) + "/" +
-                  String(year) + "|" +
-                  (hour < 10 ? "0" : "") + String(hour) + ":" +  // Ensures leading zero
+    // Format time as HH:MM:SS.MS with proper zero-padding
+    absTimeStr = ((hour < 10 ? "0" : "") + String(hour) + ":" +  // Ensures leading zero
                   (min < 10 ? "0" : "") + String(min) + ":" +
                   (second < 10 ? "0" : "") + String(second) + "." +
                   (milli < 100 ? (milli < 10 ? "00" : "0") : "") + String(milli));
@@ -574,7 +577,7 @@ void sendStatus() //send statusmessage char array
   float tempalt = 0;
      for(int i = 0; i<100; i++) //seting starting alt using avg of 1000 points
       {
-        float billy = bmp.readAltitude();//mooveMe();
+        float billy = bmp.readAltitude();//mo oveMe();
         tempalt += billy;
         SerialUSB.print("ReZero: ");
         SerialUSB.println(billy);
@@ -582,18 +585,20 @@ void sendStatus() //send statusmessage char array
      StartAltitude = tempalt/100;
      SerialUSB.println(StartAltitude);
   }
+
+
   float sum = 0;
   float mooveMe() // moving avg over 100 points
   {
-    valuee = bmp.readAltitude(); 
+   valuee = (getChangeInAltitude()*(frq)); 
    sum += valuee;
-   alts.push(valuee);
-   if(alts.size()>99)
+   vels.push(valuee);
+   if(vels.size()>99)
    {
-     sum -= alts.first();
+     sum -= vels.first();
      return sum/100;
    }
-   return bmp.readAltitude();
+   return -1;
   }
 
 
@@ -733,7 +738,25 @@ void sendStatus() //send statusmessage char array
     return absalt;
   }
 
+  bool failsafe1()
+  {
+    if(Altitude > 152.4)
+    {
+      failsafed1 = true;
+      return true;
+    }
+    return false;
+  }
 
+  bool failsafe2()
+  {
+    if(6.1 > abs(Altitude))
+    {
+      failsafed2 = true;
+      return true;
+    }
+    return false;
+  }
 
 
 
@@ -766,11 +789,12 @@ void loop(void)
       
       SerialUSB.println("PAD| startAlt: " + String(StartAltitude) + " actual alt: " + String(valuee) +" absAlt: " + absalt + " stabilitycount: " + stableCounter);
       
-      if(getChangeInAltitude() >= 1.5 || Altitude > 152.4 ) //if altitude change is significant enough (not just moving rocket around but an actual liftoff) go to flight stage
+      if(getChangeInAltitude() >= 1.5 || failsafe1()) //if altitude change is significant enough (not just moving rocket around but an actual liftoff) go to flight stage
       {//failsafe added with threshold of 152.4 m
         stableCounter++;
         if(stableCounter>15)
         {
+           launchTime = millis();
            currentState = nextState;
            nextState = LAND;
           //snprintf(StatusMessage, sizeof(StatusMessage), "State PAD -> FLIGHT| Current Alt: %.2f m", Altitude);
@@ -798,12 +822,13 @@ void loop(void)
       isMaxVelocity();
       SerialUSB.println("Flight| Alt:" + String(Altitude) + " G:" + String(Gforce) + " Vel:" + String(Velocity) + " Temp:" + Temperature +"");
       
-      if(((getChangeInAltitude() <= 0.75) && currentAltitude() < 152.4) ||  6.1 > abs(Altitude) ) //checks for conditions signifying that landing has happened (304.8m = 1000ft)
+      if(((getChangeInAltitude() <= 0.75) && currentAltitude() < 152.4) ||  failsafe2() ) //checks for conditions signifying that landing has happened (304.8m = 1000ft)
       {//threshold should be 6.1
         stableCounter++;
         if(stableCounter>15)
         {
           stableCounter = 0;
+          landTime = millis();
           stupidtimefix();
           recordTime();
           calculateLandingVelocity();

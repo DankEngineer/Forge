@@ -764,7 +764,7 @@ void loop(void)
           cntr--;
         }
 
-        if(MaxGForce>15)
+        if(MaxGForce>5)
           cntr--;
         
       SerialUSB.print("laningvelo: ");
