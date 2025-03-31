@@ -430,9 +430,9 @@ void sendStatus() //send statusmessage char array
     float lvl = 0.0;
     for(int i=0; i<accels.size(); i++) //riemann summing to get velocity by multiplying acceleration values by time period of point
     {
-      lvl += (1/frq)*((accels.pop() - 1)); // accels is in erms of g force and -1 removes gravity which is than multiplied by 1/the frequency (time between points) to get velocity
+      lvl += (1/frq)*((accels.pop() - 9.81)); // accels is in erms of g force and -1 removes gravity which is than multiplied by 1/the frequency (time between points) to get velocity
     }
-    LandingVelocity = lvl * 9.81;
+    LandingVelocity = lvl;
   }
 
     void isMaxAltitude() //gets new altitude and checks it is greater than apogee, if so than replace
@@ -465,8 +465,8 @@ void sendStatus() //send statusmessage char array
   void getGforce() //gets acceleration from high-g imu and devides by earth's gravity
   {
     float HighAccel = getHighGAcceleration();
-    Gforce = HighAccel / 9.81f;
-    landingVelocityAddData(Gforce);
+    Gforce = HighAccel / 9.81f;// used in max gforce
+    landingVelocityAddData(HighAccel);// acceleration to buffer
   }
 
   
