@@ -92,7 +92,7 @@ Adafruit_BNO055 bno = Adafruit_BNO055(-1, BNO055_ADDRESS_A);
 float OldAltitude = 0.0;
 //DO NOT CALL A THE ALTIMETER HERE (calling bmp.readAltitude() screwed stuff up)
 float Altitude = 0.0; 
-const float frq = 14;//data rate during flight state
+const float frq = 25;
 CircularBuffer<float, 120> accels;
 CircularBuffer<float, 100> alts;
 CircularBuffer<float, 10> vels;
@@ -123,6 +123,7 @@ int stableCounter = 0;
 int remoteShutoffCounter = 0;
 String Survival = "";
 float absalt =0.0;
+int cntrrrr = 0;
 static unsigned long long millisAtSync = 0;
     
 static unsigned long long lastAbsTime = 0;
@@ -278,14 +279,14 @@ void waitSats()
   }
 }
 void resetI2C()
-{
+ {
   Wire.end();  // End the current I2C session
   delay(100);  // Wait for a bit
   Wire.begin();  // Reinitialize the I2C bus
-}
+ }
 
   void displayCalStatus(void)
-{
+ {
   /* Get the four calibration values (0..3) */
   /* Any sensor data reporting 0 should be ignored, */
   /* 3 means 'fully calibrated" */
@@ -309,7 +310,7 @@ void resetI2C()
   SerialUSB.print(accel, DEC);
   SerialUSB.print(" M:");
   SerialUSB.println(mag, DEC);
-}
+ }
   
   
   
@@ -829,44 +830,10 @@ void sendStatus() //send statusmessage char array
 
 void loop(void)
 {
-  switch (currentState) 
-  {
+  cntrrrr += 1;
+  SerialUSB.print(cntrrrr);
 	
-    case PAD:
-    {
-
-      getAltitude();
       
-      SerialUSB.println("PAD| startAlt: " + String(StartAltitude) + " actual alt: " + String(valuee) +" absAlt: " + absalt + " stabilitycount: " + stableCounter);
-      
-      if(getChangeInAltitude() >= 1.5 || failsafe1()) //if altitude change is significant enough (not just moving rocket around but an actual liftoff) go to flight stage
-      {//failsafe added with threshold of 152.4 m
-        stableCounter++;
-        if(stableCounter>15)
-        {
-           launchTime = millis();
-           currentState = nextState;
-           nextState = LAND;
-          //snprintf(StatusMessage, sizeof(StatusMessage), "State PAD -> FLIGHT| Current Alt: %.2f m", Altitude);
-          //sendStatus();
-           stableCounter = 0;
-           recordTemperature();
-         }
-      }
-      else if(getChangeInAltitude() <= 1 && stableCounter > 0 )
-         {
-          stableCounter--;
-         }
-
-      if(getShutdownStatus())
-      {
-        currentState = SHUTDOWN;				
-      }
-      break;
-    }
-
-    case FLIGHT:
-    {
       isMaxAltitude();
       isMaxGforce();
       isMaxVelocity();
@@ -899,56 +866,13 @@ void loop(void)
       {
         currentState = SHUTDOWN;				
       }
-      break;
-    }
 
-    case LAND:
-    {
-      recordTemperature();
-      while(Orientation_W == 100)
-      {
-          resetI2C();
-          SerialUSB.println("reset");
-          //setReports();
-          SerialUSB.println("reports");
-          recordOrientation();
-          SerialUSB.println(Orientation_W);
-      }
-      recordBatteryStatus();
-      calculateSurvivalChance();
-      //snprintf(StatusMessage, sizeof(StatusMessage), "State LAND -> TRNASMIT| Current Alt Change: %.2f m", Altitude);
-      //sendStatus();
-      currentState = nextState;
-      nextState = SHUTDOWN; //no shutdown check because will never stay in this state
-      break;
-    }
 
-    case TRANSMIT:
-    {
-      if(true)//timer()
-      {
-        transmitData();
-      }
-      else
-      {
-        currentState = nextState;
-        currentState = SHUTDOWN;
-      }
+    
+    
 
-      if(getShutdownStatus())
-      {
-        currentState = SHUTDOWN;				
-      }
-      break;
-    }
 
-    case SHUTDOWN:
-    {
-      snprintf(StatusMessage, sizeof(StatusMessage), "Shutdown Activated");
-      sendStatus();
-      shutdown();
-      break;
-    }
 
-  }
+
+  
 }
