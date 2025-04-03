@@ -141,7 +141,7 @@ bool failsafed2 = false;
 
 void setup() 
 {
-   Wire.end();
+  Wire.end();
   Wire.begin();
   // While the energy rises slowly with the solar panel, 
   // using the analog reference low solves the analog measurement errors.
@@ -248,6 +248,26 @@ void setup()
   snprintf(StatusMessage, sizeof(StatusMessage), "Begin");
            sendStatus();
       //setReports();
+      //calibrate BNO055
+      adafruit_bno055_offsets_t calibrationData;
+
+      calibrationData.accel_offset_x = -6;
+      calibrationData.accel_offset_y = 111;
+      calibrationData.accel_offset_z = -10;
+    
+      calibrationData.gyro_offset_x = 1;
+      calibrationData.gyro_offset_y = -2;
+      calibrationData.gyro_offset_z = 0;
+    
+      calibrationData.mag_offset_x = 446;
+      calibrationData.mag_offset_y = 15;
+      calibrationData.mag_offset_z = 109;
+    
+      calibrationData.accel_radius = 1000;
+      calibrationData.mag_radius = 943;
+  
+      bno.setSensorOffsets(calibrationData);
+      displayCalStatus();
 }
 
 void waitSats()
@@ -264,6 +284,36 @@ void resetI2C()
   Wire.begin();  // Reinitialize the I2C bus
 }
 
+  void displayCalStatus(void)
+{
+  /* Get the four calibration values (0..3) */
+  /* Any sensor data reporting 0 should be ignored, */
+  /* 3 means 'fully calibrated" */
+  uint8_t system, gyro, accel, mag;
+  system = gyro = accel = mag = 0;
+  bno.getCalibration(&system, &gyro, &accel, &mag);
+
+  /* The data should be ignored until the system calibration is > 0 */
+  SerialUSB.print("\t");
+  if (!system)
+  {
+    SerialUSB.print("! ");
+  }
+
+  /* Display the individual values */
+  SerialUSB.print("Sys:");
+  SerialUSB.print(system, DEC);
+  SerialUSB.print(" G:");
+  SerialUSB.print(gyro, DEC);
+  SerialUSB.print(" A:");
+  SerialUSB.print(accel, DEC);
+  SerialUSB.print(" M:");
+  SerialUSB.println(mag, DEC);
+}
+  
+  
+  
+  
   void stupidtimefix()
   {
       month = Monthmany;
@@ -593,7 +643,7 @@ void sendStatus() //send statusmessage char array
    valuee = (getChangeInAltitude()*(frq)); 
    sum += valuee;
    vels.push(valuee);
-   if(vels.size()>99)
+   if(vels.size()>9)
    {
      sum -= vels.first();
      return sum/100;

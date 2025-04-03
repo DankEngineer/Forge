@@ -1,9 +1,17 @@
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
-#include <Adafruit_BNO055.h>
-#include <utility/imumaths.h>
 #include <Adafruit_ADXL375.h>
-
+//#include "SparkFun_BNO08x_Arduino_Library.h";
+#include <Adafruit_BNO055.h>
+#include <Arduino.h>
+#include <math.h>
+#include <stdio.h>
+#include <avr/dtostrf.h>
+#include <MemoryFree.h>
+#include <ZeroAPRS.h>                       //https://github.com/hakkican/ZeroAPRS
+#include <SparkFun_Ublox_Arduino_Library.h> //https://github.com/sparkfun/SparkFun_Ublox_Arduino_Library
+#include <Adafruit_BMP085.h>
+#include <CircularBuffer.hpp>               //https://github.com/rlogiacco/CircularBuffer
   
 Adafruit_BNO055 bno = Adafruit_BNO055(-1, BNO055_ADDRESS_A);
 
@@ -15,7 +23,7 @@ void setup() {
   Serial.begin(9600);
   if(!bno.begin()) 
   {
-    Serial.print("Ooops, BNO055(A) not detected");
+    SerialUSB.print("Ooops, BNO055(A) not detected");
     while(1);
 
   }
@@ -56,19 +64,19 @@ void displayCalStatus(void){
   bno.getCalibration(&system, &gyro, &accel, &mag);
 
   /* The data should be ignored until the system calibration is > 0 */
-  Serial.print("\t");
+  SerialUSB.print("\t");
   if (!system)
   {
-    Serial.print("! ");
+    SerialUSB.print("! ");
   }
 
   /* Display the individual values */
-  Serial.print("Sys:");
-  Serial.print(system, DEC);
-  Serial.print(" G:");
-  Serial.print(gyro, DEC);
-  Serial.print(" A:");
-  Serial.print(accel, DEC);
-  Serial.print(" M:");
-  Serial.println(mag, DEC);
+  SerialUSB.print("Sys:");
+  SerialUSB.print(system, DEC);
+  SerialUSB.print(" G:");
+  SerialUSB.print(gyro, DEC);
+  SerialUSB.print(" A:");
+  SerialUSB.print(accel, DEC);
+  SerialUSB.print(" M:");
+  SerialUSB.println(mag, DEC);
 }
