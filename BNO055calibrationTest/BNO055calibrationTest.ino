@@ -52,9 +52,33 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
   displayCalStatus();
+  recordOrientation();
 }
 
-
+void recordOrientation() //gets the orientation from the orientation imu in quaternions. This is orientation of whole capsule, individual stemNAUTS can be derived based on position.
+  {
+    imu::Quaternion quat = bno.getQuat();
+  //if (mBNO085.getSensorEvent() == true) 
+  //{
+    //SerialUSB.println("bno got sensor event");
+    // Check if we got geomagnetic rotation vector data
+    //if (mBNO085.getSensorEventID() == SENSOR_REPORTID_GEOMAGNETIC_ROTATION_VECTOR) 
+    //{    
+    	//Orientation_W = mBNO085.getQuatReal();
+      SerialUSB.print("W: ");
+      SerialUSB.print(quat.w());
+    	//Orientation_X = mBNO085.getQuatI();
+      SerialUSB.print("X: ");
+      SerialUSB.print(quat.x());
+    	//Orientation_Y = mBNO085.getQuatJ();
+      SerialUSB.print("Y: ");
+      SerialUSB.print(quat.y());
+    	//Orientation_Z = mBNO085.getQuatK();
+      SerialUSB.print("Z: ");
+      SerialUSB.print(quat.z());
+      //SerialUSB.println("numbers changed");
+	  //}
+	}
 void displayCalStatus(void){
   /* Get the four calibration values (0..3) */
   /* Any sensor data reporting 0 should be ignored, */
