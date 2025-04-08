@@ -14,8 +14,11 @@
 #include <CircularBuffer.hpp>               //https://github.com/rlogiacco/CircularBuffer
   
 Adafruit_BNO055 bno = Adafruit_BNO055(-1, BNO055_ADDRESS_A);
-
-
+      float check = 0;
+      float Sw = 1;
+      float Sx = 0;
+      float Sy = 0;
+      float Sz = 0;
 
 
 void setup() {
@@ -29,31 +32,43 @@ void setup() {
   }
 
 
-    adafruit_bno055_offsets_t calibrationData;
+  adafruit_bno055_offsets_t calibrationData;
 
-    calibrationData.accel_offset_x = -6;
-    calibrationData.accel_offset_y = 111;
-    calibrationData.accel_offset_z = -10;
+   calibrationData.accel_offset_x = -6;
+   calibrationData.accel_offset_y = 111;
+  calibrationData.accel_offset_z = -10;
+
+   //calibrationData.gyro_offset_x = 1;
+    //calibrationData.gyro_offset_y = -2;
+    //calibrationData.gyro_offset_z = 0;
   
-    calibrationData.gyro_offset_x = 1;
-    calibrationData.gyro_offset_y = -2;
-    calibrationData.gyro_offset_z = 0;
-  
-    calibrationData.mag_offset_x = 446;
-    calibrationData.mag_offset_y = 15;
-    calibrationData.mag_offset_z = 109;
+    //calibrationData.mag_offset_x = 446;
+    //calibrationData.mag_offset_y = 15;
+    //calibrationData.mag_offset_z = 109;
   
     calibrationData.accel_radius = 1000;
     calibrationData.mag_radius = 943;
   
     bno.setSensorOffsets(calibrationData);
   
-    bno.setMode(OPERATION_MODE_M4G);
+    bno.setMode(OPERATION_MODE_IMUPLUS);
 
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
+      imu::Quaternion quat = bno.getQuat();
+
+
+    if (check == 0){
+      
+      Sw= quat.w();
+      Sx = quat.x();
+      Sy = quat.y();
+      Sz = quat.z();
+      SerialUSB.print("zeroed");
+      check = 1;
+    }
   displayCalStatus();
   recordOrientation();
 }
@@ -61,16 +76,7 @@ void loop() {
 void recordOrientation() //gets the orientation from the orientation imu in quaternions. This is orientation of whole capsule, individual stemNAUTS can be derived based on position.
   {
     imu::Quaternion quat = bno.getQuat();
-    float check = 0;
-    if (check != 1){
-      
-      float Sw= quat.w();
-      float Sx = quat.x();
-      float Sy = quat.y();
-      float Sz = quat.z();
-
-      check = 1;
-    }
+ 
 
       
 
@@ -83,17 +89,18 @@ void recordOrientation() //gets the orientation from the orientation imu in quat
     //{    
     	//Orientation_W = mBNO085.getQuatReal();
       SerialUSB.print("W: ");
-      SerialUSB.print(quat.w());
+      SerialUSB.print(quat.w()+abs(Sw-1));
     	//Orientation_X = mBNO085.getQuatI();
       SerialUSB.print("X: ");
-      SerialUSB.print(quat.x());
+      SerialUSB.print(quat.x()-Sx);
     	//Orientation_Y = mBNO085.getQuatJ();
       SerialUSB.print("Y: ");
-      SerialUSB.print(quat.y());
+      SerialUSB.print(quat.y()-Sy);
     	//Orientation_Z = mBNO085.getQuatK();
       SerialUSB.print("Z: ");
-      SerialUSB.print(quat.z());
+      SerialUSB.print(quat.z()-Sz);
       //SerialUSB.println("numbers changed");
+      
 	  //}
 	}
 void displayCalStatus(void){
