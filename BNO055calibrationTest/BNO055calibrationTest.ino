@@ -27,6 +27,8 @@ void setup() {
     while(1);
 
   }
+
+
     adafruit_bno055_offsets_t calibrationData;
 
     calibrationData.accel_offset_x = -6;
@@ -46,7 +48,8 @@ void setup() {
   
     bno.setSensorOffsets(calibrationData);
   
-  
+    bno.setMode(OPERATION_MODE_M4G);
+
 }
 
 void loop() {
@@ -58,6 +61,20 @@ void loop() {
 void recordOrientation() //gets the orientation from the orientation imu in quaternions. This is orientation of whole capsule, individual stemNAUTS can be derived based on position.
   {
     imu::Quaternion quat = bno.getQuat();
+    float check = 0;
+    if (check != 1){
+      
+      float Sw= quat.w();
+      float Sx = quat.x();
+      float Sy = quat.y();
+      float Sz = quat.z();
+
+      check = 1;
+    }
+
+      
+
+
   //if (mBNO085.getSensorEvent() == true) 
   //{
     //SerialUSB.println("bno got sensor event");
