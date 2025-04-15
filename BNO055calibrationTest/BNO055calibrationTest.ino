@@ -38,20 +38,21 @@ void setup() {
    calibrationData.accel_offset_y = 111;
   calibrationData.accel_offset_z = -10;
 
-   //calibrationData.gyro_offset_x = 1;
-    //calibrationData.gyro_offset_y = -2;
-    //calibrationData.gyro_offset_z = 0;
+   calibrationData.gyro_offset_x = 1;
+   calibrationData.gyro_offset_y = -2;
+   calibrationData.gyro_offset_z = 0;
   
-    //calibrationData.mag_offset_x = 446;
-    //calibrationData.mag_offset_y = 15;
-    //calibrationData.mag_offset_z = 109;
+   calibrationData.mag_offset_x = 446;
+   calibrationData.mag_offset_y = 15;
+   calibrationData.mag_offset_z = 109;
   
     calibrationData.accel_radius = 1000;
     calibrationData.mag_radius = 943;
   
     bno.setSensorOffsets(calibrationData);
   
-    bno.setMode(OPERATION_MODE_IMUPLUS);
+    //bno.setMode(OPERATION_MODE_IMUPLUS);
+    //bno.setAxisRemap(Adafruit_BNO055::REMAP_CONFIG_P5);
 
 }
 
@@ -89,16 +90,16 @@ void recordOrientation() //gets the orientation from the orientation imu in quat
     //{    
     	//Orientation_W = mBNO085.getQuatReal();
       SerialUSB.print("W: ");
-      SerialUSB.print(quat.w()+abs(Sw-1));
+      SerialUSB.print(quat.w());
     	//Orientation_X = mBNO085.getQuatI();
       SerialUSB.print("X: ");
-      SerialUSB.print(quat.x()-Sx);
+      SerialUSB.print(quat.x());
     	//Orientation_Y = mBNO085.getQuatJ();
       SerialUSB.print("Y: ");
-      SerialUSB.print(quat.y()-Sy);
+      SerialUSB.print(quat.y());
     	//Orientation_Z = mBNO085.getQuatK();
       SerialUSB.print("Z: ");
-      SerialUSB.print(quat.z()-Sz);
+      SerialUSB.print(quat.z());
       //SerialUSB.println("numbers changed");
       
 	  //}
