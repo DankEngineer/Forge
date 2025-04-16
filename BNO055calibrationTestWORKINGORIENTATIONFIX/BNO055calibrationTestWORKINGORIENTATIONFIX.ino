@@ -27,7 +27,7 @@ void setup() {
   Serial.begin(9600);
   if(!bno.begin()) 
   {
-    Serial.print("Ooops, BNO055(A) not detected");
+    SerialUSB.print("Ooops, BNO055(A) not detected");
     while(1);
 
   }
@@ -53,7 +53,7 @@ void setup() {
   
     bno.setSensorOffsets(calibrationData);
   
-    //bno.setMode(OPERATION_MODE_IMUPLUS);
+    bno.setMode(OPERATION_MODE_IMUPLUS);
     //bno.setAxisRemap(Adafruit_BNO055::REMAP_CONFIG_P5);
 
   bno.setAxisRemap((Adafruit_BNO055::adafruit_bno055_axis_remap_config_t)0x06);
@@ -79,7 +79,7 @@ void loop() {
       Sx = quat.x();
       Sy = quat.y();
       Sz = quat.z();
-      Serial.print("zeroed");
+      SerialUSB.print("zeroed");
       check = 1;
     }
   displayCalStatus();
@@ -96,25 +96,12 @@ void recordOrientation() //gets the orientation from the orientation imu in quat
 
   //if (mBNO085.getSensorEvent() == true) 
   //{
-    //Serial.println("bno got sensor event");
+    //SerialUSB.println("bno got sensor event");
     // Check if we got geomagnetic rotation vector data
     //if (mBNO085.getSensorEventID() == SENSOR_REPORTID_GEOMAGNETIC_ROTATION_VECTOR) 
     //{    
     	//Orientation_W = mBNO085.getQuatReal();
-<<<<<<< HEAD
-      Serial.print("W: ");
-      Serial.print(quat.w());
-    	//Orientation_X = mBNO085.getQuatI();
-      Serial.print("X: ");
-      Serial.print(quat.x());
-    	//Orientation_Y = mBNO085.getQuatJ();
-      Serial.print("Y: ");
-      Serial.print(quat.y());
-    	//Orientation_Z = mBNO085.getQuatK();
-      Serial.print("Z: ");
-      Serial.print(quat.z());
-      //Serial.println("numbers changed");
-=======
+//<<<<<<< HEAD
       SerialUSB.print("W: ");
       SerialUSB.print(quat.w());
     	//Orientation_X = mBNO085.getQuatI();
@@ -127,7 +114,20 @@ void recordOrientation() //gets the orientation from the orientation imu in quat
       SerialUSB.print("Z: ");
       SerialUSB.print(quat.z());
       //SerialUSB.println("numbers changed");
->>>>>>> 1c2e4852cb0914ab1536cd68c3663233133a60f8
+//=======
+      SerialUSB.print("W: ");
+      SerialUSB.print(quat.w());
+    	//Orientation_X = mBNO085.getQuatI();
+      SerialUSB.print("X: ");
+      SerialUSB.print(quat.x());
+    	//Orientation_Y = mBNO085.getQuatJ();
+      SerialUSB.print("Y: ");
+      SerialUSB.print(quat.y());
+    	//Orientation_Z = mBNO085.getQuatK();
+      SerialUSB.print("Z: ");
+      SerialUSB.print(quat.z());
+      //SerialUSB.println("numbers changed");
+//>>>>>>> 1c2e4852cb0914ab1536cd68c3663233133a60f8
       
 	  //}
 	}
@@ -140,19 +140,19 @@ void displayCalStatus(void){
   bno.getCalibration(&system, &gyro, &accel, &mag);
 
   /* The data should be ignored until the system calibration is > 0 */
-  Serial.print("\t");
+  SerialUSB.print("\t");
   if (!system)
   {
-    Serial.print("! ");
+    SerialUSB.print("! ");
   }
 
   /* Display the individual values */
-  Serial.print("Sys:");
-  Serial.print(system, DEC);
-  Serial.print(" G:");
-  Serial.print(gyro, DEC);
-  Serial.print(" A:");
-  Serial.print(accel, DEC);
-  Serial.print(" M:");
-  Serial.println(mag, DEC);
+  SerialUSB.print("Sys:");
+  SerialUSB.print(system, DEC);
+  SerialUSB.print(" G:");
+  SerialUSB.print(gyro, DEC);
+  SerialUSB.print(" A:");
+  SerialUSB.print(accel, DEC);
+  SerialUSB.print(" M:");
+  SerialUSB.println(mag, DEC);
 }
