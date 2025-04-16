@@ -6,9 +6,9 @@
 #include <Arduino.h>
 #include <math.h>
 #include <stdio.h>
-#include <avr/dtostrf.h>
+//#include <avr/dtostrf.h>
 #include <MemoryFree.h>
-#include <ZeroAPRS.h>                       //https://github.com/hakkican/ZeroAPRS
+//#include <ZeroAPRS.h>                       //https://github.com/hakkican/ZeroAPRS
 #include <SparkFun_Ublox_Arduino_Library.h> //https://github.com/sparkfun/SparkFun_Ublox_Arduino_Library
 #include <Adafruit_BMP085.h>
 #include <CircularBuffer.hpp>               //https://github.com/rlogiacco/CircularBuffer
@@ -22,21 +22,23 @@ Adafruit_BNO055 bno = Adafruit_BNO055(-1, BNO055_ADDRESS_A);
 
 
 void setup() {
+  
   // put your setup code here, to run once:
   Serial.begin(9600);
   if(!bno.begin()) 
   {
-    SerialUSB.print("Ooops, BNO055(A) not detected");
+    Serial.print("Ooops, BNO055(A) not detected");
     while(1);
 
   }
+  
 
 
   adafruit_bno055_offsets_t calibrationData;
 
    calibrationData.accel_offset_x = -6;
    calibrationData.accel_offset_y = 111;
-  calibrationData.accel_offset_z = -10;
+   calibrationData.accel_offset_z = -10;
 
    calibrationData.gyro_offset_x = 1;
    calibrationData.gyro_offset_y = -2;
@@ -54,6 +56,16 @@ void setup() {
     //bno.setMode(OPERATION_MODE_IMUPLUS);
     //bno.setAxisRemap(Adafruit_BNO055::REMAP_CONFIG_P5);
 
+  bno.setAxisRemap((Adafruit_BNO055::adafruit_bno055_axis_remap_config_t)0x06);
+  bno.setAxisSign((Adafruit_BNO055::adafruit_bno055_axis_remap_sign_t)0x00);
+  bno.setExtCrystalUse(true);
+
+
+
+
+
+
+
 }
 
 void loop() {
@@ -67,7 +79,7 @@ void loop() {
       Sx = quat.x();
       Sy = quat.y();
       Sz = quat.z();
-      SerialUSB.print("zeroed");
+      Serial.print("zeroed");
       check = 1;
     }
   displayCalStatus();
@@ -84,11 +96,25 @@ void recordOrientation() //gets the orientation from the orientation imu in quat
 
   //if (mBNO085.getSensorEvent() == true) 
   //{
-    //SerialUSB.println("bno got sensor event");
+    //Serial.println("bno got sensor event");
     // Check if we got geomagnetic rotation vector data
     //if (mBNO085.getSensorEventID() == SENSOR_REPORTID_GEOMAGNETIC_ROTATION_VECTOR) 
     //{    
     	//Orientation_W = mBNO085.getQuatReal();
+<<<<<<< HEAD
+      Serial.print("W: ");
+      Serial.print(quat.w());
+    	//Orientation_X = mBNO085.getQuatI();
+      Serial.print("X: ");
+      Serial.print(quat.x());
+    	//Orientation_Y = mBNO085.getQuatJ();
+      Serial.print("Y: ");
+      Serial.print(quat.y());
+    	//Orientation_Z = mBNO085.getQuatK();
+      Serial.print("Z: ");
+      Serial.print(quat.z());
+      //Serial.println("numbers changed");
+=======
       SerialUSB.print("W: ");
       SerialUSB.print(quat.w());
     	//Orientation_X = mBNO085.getQuatI();
@@ -101,6 +127,7 @@ void recordOrientation() //gets the orientation from the orientation imu in quat
       SerialUSB.print("Z: ");
       SerialUSB.print(quat.z());
       //SerialUSB.println("numbers changed");
+>>>>>>> 1c2e4852cb0914ab1536cd68c3663233133a60f8
       
 	  //}
 	}
@@ -113,19 +140,19 @@ void displayCalStatus(void){
   bno.getCalibration(&system, &gyro, &accel, &mag);
 
   /* The data should be ignored until the system calibration is > 0 */
-  SerialUSB.print("\t");
+  Serial.print("\t");
   if (!system)
   {
-    SerialUSB.print("! ");
+    Serial.print("! ");
   }
 
   /* Display the individual values */
-  SerialUSB.print("Sys:");
-  SerialUSB.print(system, DEC);
-  SerialUSB.print(" G:");
-  SerialUSB.print(gyro, DEC);
-  SerialUSB.print(" A:");
-  SerialUSB.print(accel, DEC);
-  SerialUSB.print(" M:");
-  SerialUSB.println(mag, DEC);
+  Serial.print("Sys:");
+  Serial.print(system, DEC);
+  Serial.print(" G:");
+  Serial.print(gyro, DEC);
+  Serial.print(" A:");
+  Serial.print(accel, DEC);
+  Serial.print(" M:");
+  Serial.println(mag, DEC);
 }
