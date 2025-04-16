@@ -101,7 +101,7 @@ void recordOrientation() //gets the orientation from the orientation imu in quat
     //if (mBNO085.getSensorEventID() == SENSOR_REPORTID_GEOMAGNETIC_ROTATION_VECTOR) 
     //{    
     	//Orientation_W = mBNO085.getQuatReal();
-//<<<<<<< HEAD
+/*<<<<<<< HEAD
       SerialUSB.print("W: ");
       SerialUSB.print(quat.w());
     	//Orientation_X = mBNO085.getQuatI();
@@ -114,17 +114,17 @@ void recordOrientation() //gets the orientation from the orientation imu in quat
       SerialUSB.print("Z: ");
       SerialUSB.print(quat.z());
       //SerialUSB.println("numbers changed");
-//=======
+//======= */
       SerialUSB.print("W: ");
       SerialUSB.print(quat.w());
     	//Orientation_X = mBNO085.getQuatI();
-      SerialUSB.print("X: ");
+      SerialUSB.print("| X: ");
       SerialUSB.print(quat.x());
     	//Orientation_Y = mBNO085.getQuatJ();
-      SerialUSB.print("Y: ");
+      SerialUSB.print("| Y: ");
       SerialUSB.print(quat.y());
     	//Orientation_Z = mBNO085.getQuatK();
-      SerialUSB.print("Z: ");
+      SerialUSB.print("| Z: ");
       SerialUSB.print(quat.z());
       //SerialUSB.println("numbers changed");
 //>>>>>>> 1c2e4852cb0914ab1536cd68c3663233133a60f8
