@@ -99,8 +99,8 @@ float Altitude = 0.0;
 const float frq = 14;  //data rate during flight state
 CircularBuffer<float, 50> accels;
 CircularBuffer<unsigned long long, 50> timez;
-CircularBuffer<float, 100> alts;
-CircularBuffer<float, 10> vels;
+//CircularBuffer<float, 100> alts;
+CircularBuffer<float, 3> vels;
 CircularBuffer<float, 30> vels2;
 float LandingVelocity = -999.0;
 float Apogee = -690000.0;
@@ -626,7 +626,7 @@ float mooveMe()  // moving avg over 3 points
   valuee = (getChangeInAltitude() * getChangeInTime());
   sum += valuee;
   vels.push(valuee);
-  if (vels.size() > 3) 
+  if (vels.size() > 2) 
   {
     sum -= vels.first();
     return sum / 3;
