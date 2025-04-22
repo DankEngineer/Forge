@@ -101,6 +101,7 @@ CircularBuffer<float, 50> accels;
 CircularBuffer<unsigned long long, 50> timez;
 CircularBuffer<float, 100> alts;
 CircularBuffer<float, 10> vels;
+CircularBuffer<float, 30> vels2;
 float LandingVelocity = -999.0;
 float Apogee = -690000.0;
 float Gforce = 0.0;
@@ -146,7 +147,8 @@ unsigned long long anewTime = 0;
 
 
 
-void setup() {
+void setup() 
+{
   Wire.end();
   Wire.begin();
   // While the energy rises slowly with the solar panel,
@@ -270,8 +272,16 @@ void setup() {
   calibrationData.mag_radius = 943;
 
   bno.setSensorOffsets(calibrationData);
+  bno.setMode(OPERATION_MODE_IMUPLUS);
   displayCalStatus();
+  bno.setAxisRemap((Adafruit_BNO055::adafruit_bno055_axis_remap_config_t)0x06);
+  bno.setAxisSign((Adafruit_BNO055::adafruit_bno055_axis_remap_sign_t)0x00);
+  bno.setExtCrystalUse(true);
+
+
+
 }
+
 
 void waitSats() {
   while (sats > 0) {
@@ -601,14 +611,11 @@ void manualSync() {
 
 void reZero() {
   float tempalt = 0;
-  for (int i = 0; i < 100; i++)  //seting starting alt using avg of 100 points
+  for (int i = 0; i < 30; i++)  //seting starting alt using avg of 100 points
   {
-    float billy = bmp.readAltitude();  //mo oveMe();
-    tempalt += billy;
-    SerialUSB.print("ReZero: ");
-    SerialUSB.println(billy);
-  }
-  StartAltitude = tempalt / 100;
+    SerialUSB.println("ReZeroing");
+    mooveMe2();
+  } 
   SerialUSB.println(StartAltitude);
 }
 
@@ -623,6 +630,20 @@ float mooveMe()  // moving avg over 3 points
   {
     sum -= vels.first();
     return sum / 3;
+  }
+  return -1;
+}
+
+float sum2 = 0;
+float mooveMe2()  // moving avg over 3 points
+{
+  float valu = bmp.readAltitude();
+  sum2 += valu;
+  vels.push(valu);
+  if (vels2.size() > 29) 
+  {
+    sum -= vels2.first();
+    return sum2 / 30;
   }
   return -1;
 }
@@ -756,7 +777,8 @@ bool failsafe1() {
 }
 
 bool failsafe2() {
-  if (6.1 > abs(Altitude)) {
+  if (millis() < (launchTime + 200000))//remember number is in MILISECONDS (200000 = 200 sec)
+  {
     failsafed2 = true;
     return true;
   }
@@ -772,6 +794,7 @@ bool failsafe2() {
 
 
 
+unsigned long long 10sectmr = 0.0;
 
 
 
@@ -779,14 +802,20 @@ bool failsafe2() {
 
 
 
-
-
+mooveMe2()
 
 void loop(void) {
   switch (currentState) {
 
     case PAD:
       {
+        if(millis() - 10sectmr = 10000)
+        {
+          10sectmr = millis();
+          mooveMe2();
+        }
+        
+
 
         getAltitude();
 
