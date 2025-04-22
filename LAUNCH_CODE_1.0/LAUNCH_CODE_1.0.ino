@@ -97,8 +97,8 @@ float OldAltitude = 0.0;
 //DO NOT CALL A THE ALTIMETER HERE (calling bmp.readAltitude() screwed stuff up)
 float Altitude = 0.0;
 const float frq = 14;  //data rate during flight state
-CircularBuffer<float, 50> accels;
-CircularBuffer<unsigned long long, 50> timez;
+CircularBuffer<float, 500> accels;
+CircularBuffer<float, 500> timez;
 //CircularBuffer<float, 100> alts;
 CircularBuffer<float, 3> vels;
 CircularBuffer<float, 30> vels2;
@@ -466,22 +466,22 @@ float getChangeInAltitude()  //calculates the absolute change in altitude based 
 
 float getChangeInTime()  //calculates the absolute change in altitude based on the last two readings. note you have to run get altitude 2 times before this is reliable
 {
-  return abs(anewTime - aoldTime);
+  return abs(anewTime - aoldTime)/1000;
 }
 
 void landingVelocityAddData(float point)  //adds a new acceleration data point to the circular buffer. used for calculating landing velocity
 {
-  accels.push(point);
-  timez.push(millis());
+  accels.unshift(point);
+  timez.unshift(millis()/1000);
 }
 
 
 void calculateLandingVelocity()  //calculates landing velocity by pulling the current 3 second window, cleaning the values, and integrating over time
 {
   float lvl = 0.0;
-  for (int i = 0; i < accels.size()-1; i++)  //riemann summing to get velocity by multiplying acceleration values by time period of point
+  for (int i = 0; i < accels.size()-2; i++)  //riemann summing to get velocity by multiplying acceleration values by time period of point
   {
-    lvl += ((abs(timez.pop() - timez.last())) * ((accels.pop() - 9.81)));  // accels is in erms of g force and -1 removes gravity which is than multiplied by 1/the frequency (time between points) to get velocity
+    lvl += ((abs(timez.shift() - timez.first())) * ((accels.shift() - 15.81)));  // accels is in erms of g force and -1 removes gravity which is than multiplied by 1/the frequency (time between points) to get velocity
   }
   LandingVelocity = lvl;
 }
@@ -517,8 +517,9 @@ float getHighGAcceleration()  //gets accceleration from high-g imu. helper metho
 void getGforce()  //gets acceleration from high-g imu and devides by earth's gravity
 {
   float HighAccel = getHighGAcceleration();
-  Gforce = HighAccel / 9.81f;         // used in max gforce
   landingVelocityAddData(HighAccel);  // acceleration to buffer
+  Gforce = HighAccel / 9.81f;         // used in max gforce
+  
 }
 
 
@@ -639,10 +640,11 @@ float mooveMe2()  // moving avg over 3 points
 {
   float valu = bmp.readAltitude();
   sum2 += valu;
-  vels.push(valu);
+  vels2.push(valu);
   if (vels2.size() > 29) 
   {
     sum -= vels2.first();
+    StartAltitude = sum2 / 30;
     return sum2 / 30;
   }
   return -1;
@@ -794,7 +796,7 @@ bool failsafe2() {
 
 
 
-unsigned long long 10sectmr = 0.0;
+unsigned long long tensectmr = 0.0;
 
 
 
@@ -802,16 +804,17 @@ unsigned long long 10sectmr = 0.0;
 
 
 
-mooveMe2()
+
+
 
 void loop(void) {
   switch (currentState) {
 
     case PAD:
       {
-        if(millis() - 10sectmr = 10000)
+        if(millis() - tensectmr == 10000)
         {
-          10sectmr = millis();
+          tensectmr = millis();
           mooveMe2();
         }
         
