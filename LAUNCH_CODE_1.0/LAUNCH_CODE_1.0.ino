@@ -97,8 +97,8 @@ float OldAltitude = 0.0;
 //DO NOT CALL A THE ALTIMETER HERE (calling bmp.readAltitude() screwed stuff up)
 float Altitude = 0.0;
 const float frq = 14;  //data rate during flight state
-CircularBuffer<float, 500> accels;
-CircularBuffer<float, 500> timez;
+CircularBuffer<float, 100> accels;
+CircularBuffer<float, 100> timez;
 //CircularBuffer<float, 100> alts;
 CircularBuffer<float, 3> vels;
 CircularBuffer<float, 30> vels2;
@@ -250,8 +250,7 @@ void setup()
   } else {
     manualSync();
   }
-  snprintf(StatusMessage, sizeof(StatusMessage), "Begin");
-  sendStatus();
+  startSign();
   //setReports();
   //calibrate BNO055
   adafruit_bno055_offsets_t calibrationData;
@@ -281,7 +280,14 @@ void setup()
 
 
 }
-
+void startSign()
+{
+    char Frequency2[9] = "145.0900";
+    configDra818(Frequency2);
+    snprintf(StatusMessage, sizeof(StatusMessage), "Begin");
+    sendStatus();
+    configDra818(Frequency);
+}
 
 void waitSats() {
   while (sats > 0) {
@@ -472,18 +478,17 @@ float getChangeInTime()  //calculates the absolute change in altitude based on t
 void landingVelocityAddData(float point)  //adds a new acceleration data point to the circular buffer. used for calculating landing velocity
 {
   accels.unshift(point);
-  timez.unshift(millis()/1000);
 }
 
 
-void calculateLandingVelocity()  //calculates landing velocity by pulling the current 3 second window, cleaning the values, and integrating over time
+void calculateLandingVelocity()  //calcs landingvelo from getting 100points of data before landing and avging the oldest 20 (should be velocity before landing)
 {
   float lvl = 0.0;
-  for (int i = 0; i < accels.size()-2; i++)  //riemann summing to get velocity by multiplying acceleration values by time period of point
+  for (int i = 0; i < 20; i++)  
   {
-    lvl += ((abs(timez.shift() - timez.first())) * ((accels.shift() - 15.81)));  // accels is in erms of g force and -1 removes gravity which is than multiplied by 1/the frequency (time between points) to get velocity
+    lvl += accels.pop();
   }
-  LandingVelocity = lvl;
+  LandingVelocity = lvl/20;
 }
 
 void isMaxAltitude()  //gets new altitude and checks it is greater than apogee, if so than replace
@@ -517,7 +522,6 @@ float getHighGAcceleration()  //gets accceleration from high-g imu. helper metho
 void getGforce()  //gets acceleration from high-g imu and devides by earth's gravity
 {
   float HighAccel = getHighGAcceleration();
-  landingVelocityAddData(HighAccel);  // acceleration to buffer
   Gforce = HighAccel / 9.81f;         // used in max gforce
   
 }
@@ -539,6 +543,11 @@ void isMaxVelocity()  //gets new Velocity and checks it is greater than MaxVeloc
   if (Velocity > MaxVelocity) {
     MaxVelocity = Velocity;
   }
+  if(Altitude<76.2)
+  {
+    landingVelocityAddData(Velocity);  // velocity to buffer
+  }
+
 }
 
 void getVelocity()  //gets new Velocity from change in altitude devided by time
@@ -643,8 +652,9 @@ float mooveMe2()  // moving avg over 3 points
   vels2.push(valu);
   if (vels2.size() > 29) 
   {
-    sum -= vels2.first();
+    
     StartAltitude = sum2 / 30;
+    sum2 -= vels2.first();
     return sum2 / 30;
   }
   return -1;
@@ -659,7 +669,8 @@ int getTime()
 
 bool timer()  //determines if 300 secconds (5 min) have passed since landing
 {
-  if (millis() - landingTime > 290000) {
+  if (millis() - landingTime > 290000) //290 sec is less than 5 mins
+  {
     return false;  //(300 >= getTime() - LandingTime); will use remote shutdown during testing and maybe full scale flight (will have auto for final)
   }
   SerialUSB.println((millis() - landingTime) / 1000);
@@ -744,9 +755,9 @@ bool getShutdownStatus()  //uses dutycycle to determine whether should shutdown
 }
 
 
-void shutdown()  //shutdown is sumulated with a 100 second pause
+void shutdown()  //shutdown is sumulated with a 1000 second pause
 {
-  delay(100000);
+  delay(1000000);//1000 sec = 1000000 milisec
 }
 
 void transmitData() {
@@ -766,12 +777,13 @@ void transmitData() {
 }
 
 float getAbsAltitude() {
-  absalt = bmp.readAltitude() - StartAltitude;
+  valuee = bmp.readAltitude();
+  absalt = valuee - StartAltitude;
   return absalt;
 }
 
 bool failsafe1() {
-  if (Altitude > 152.4) {
+  if (Altitude > 50) {
     failsafed1 = true;
     return true;
   }
@@ -812,7 +824,7 @@ void loop(void) {
 
     case PAD:
       {
-        if(millis() - tensectmr == 10000)
+        if(millis() - tensectmr >= 10000)
         {
           tensectmr = millis();
           mooveMe2();
@@ -853,7 +865,7 @@ void loop(void) {
         isMaxVelocity();
         SerialUSB.println("Flight| Alt:" + String(Altitude) + " G:" + String(Gforce) + " Vel:" + String(Velocity) + " Temp:" + Temperature + "");
 
-        if (((getChangeInAltitude() <= 0.75) && currentAltitude() < 76.2) || failsafe2())  //checks for conditions signifying that landing has happened (76.2m = 250ft)
+        if (((getChangeInAltitude() <= 0.55) && currentAltitude() < 12) || failsafe2())  //checks for conditions signifying that landing has happened (76.2m = 250ft)
         {                                                                                  //threshold should be 6.1
           stableCounter++;
           if (stableCounter > 15) {
@@ -883,14 +895,7 @@ void loop(void) {
     case LAND:
       {
         recordTemperature();
-        while (Orientation_W == 100) {
-          resetI2C();
-          SerialUSB.println("reset");
-          //setReports();
-          SerialUSB.println("reports");
-          recordOrientation();
-          SerialUSB.println(Orientation_W);
-        }
+        recordOrientation();
         recordBatteryStatus();
         calculateSurvivalChance();
         //snprintf(StatusMessage, sizeof(StatusMessage), "State LAND -> TRNASMIT| Current Alt Change: %.2f m", Altitude);
@@ -902,15 +907,18 @@ void loop(void) {
 
     case TRANSMIT:
       {
-        if (true)  //timer()
+        if (timer())
         {
           transmitData();
-        } else {
+        } 
+        else 
+        {
           currentState = nextState;
           currentState = SHUTDOWN;
         }
 
-        if (getShutdownStatus()) {
+        if (getShutdownStatus()) 
+        {
           currentState = SHUTDOWN;
         }
         break;
