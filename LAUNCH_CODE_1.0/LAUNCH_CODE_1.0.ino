@@ -102,7 +102,7 @@ CircularBuffer<float, 100> timez;
 //CircularBuffer<float, 100> alts;
 CircularBuffer<float, 3> vels;
 CircularBuffer<float, 30> vels2;
-float LandingVelocity = -999.0;
+float LandingVelocity = -42.69;
 float Apogee = -690000.0;
 float Gforce = 0.0;
 float MaxGForce = -999.0;
@@ -477,18 +477,22 @@ float getChangeInTime()  //calculates the absolute change in altitude based on t
 
 void landingVelocityAddData(float point)  //adds a new acceleration data point to the circular buffer. used for calculating landing velocity
 {
-  accels.unshift(point);
+  if(accels.size() < 100)
+  {
+    accels.unshift(point);
+  }
+
 }
 
 
 void calculateLandingVelocity()  //calcs landingvelo from getting 100points of data before landing and avging the oldest 20 (should be velocity before landing)
 {
   float lvl = 0.0;
-  for (int i = 0; i < 20; i++)  
+  for (int i = 0; i < 100; i++)  
   {
     lvl += accels.pop();
   }
-  LandingVelocity = lvl/20;
+  LandingVelocity = lvl/100;
 }
 
 void isMaxAltitude()  //gets new altitude and checks it is greater than apogee, if so than replace
