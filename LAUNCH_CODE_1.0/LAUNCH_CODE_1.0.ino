@@ -488,11 +488,12 @@ void landingVelocityAddData(float point)  //adds a new acceleration data point t
 void calculateLandingVelocity()  //calcs landingvelo from getting 100points of data before landing and avging the oldest 20 (should be velocity before landing)
 {
   float lvl = 0.0;
+  float maxsizee = accels.size();
   for (int i = 0; i < 100; i++)  
   {
     lvl += accels.pop();
   }
-  LandingVelocity = lvl/100;
+  LandingVelocity = lvl/maxsizee;
 }
 
 void isMaxAltitude()  //gets new altitude and checks it is greater than apogee, if so than replace
