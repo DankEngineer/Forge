@@ -143,7 +143,7 @@ unsigned long long landTime = 0;
 bool failsafed1 = false;
 bool failsafed2 = false;
 unsigned long long aoldTime = 0;
-unsigned long long anewTime = 0;
+unsigned long long anewTime = 1;// is 1 to prevent divide by 0
 
 
 
@@ -472,7 +472,7 @@ float getChangeInAltitude()  //calculates the absolute change in altitude based 
 
 float getChangeInTime()  //calculates the absolute change in altitude based on the last two readings. note you have to run get altitude 2 times before this is reliable
 {
-  return abs(anewTime - aoldTime)/1000;
+  return (anewTime - aoldTime)/1000.0;
 }
 
 void landingVelocityAddData(float point)  //adds a new acceleration data point to the circular buffer. used for calculating landing velocity
@@ -633,7 +633,7 @@ void reZero() {
 float sum = 0;
 float mooveMe()  // moving avg over 3 points
 {
-  valuee = (getChangeInAltitude() * getChangeInTime());
+  valuee = (getChangeInAltitude() / getChangeInTime());
   sum += valuee;
   vels.push(valuee);
   if (vels.size() > 2) 
@@ -835,6 +835,7 @@ void loop(void) {
         getAltitude();
 
         SerialUSB.println("PAD| startAlt: " + String(StartAltitude) + " actual alt: " + String(valuee) + " absAlt: " + absalt + " stabilitycount: " + stableCounter);
+        //SerialUSB.println("PADp2| changeinalt: " + String(getChangeInAltitude()) + " changeintime: " + String(getChangeInTime()));
 
         if (getChangeInAltitude() >= 1.5 || failsafe1())  //if altitude change is significant enough (not just moving rocket around but an actual liftoff) go to flight stage
         {                                                 //failsafe added with threshold of 152.4 m
