@@ -32,10 +32,10 @@ int8_t  CallNumber=9;//SSID http://www.aprs.org/aprs11/SSIDs.txt
 char    Symbol='>'; // 'O' for balloon, '>' for car, for more info : http://www.aprs.org/symbols/symbols-new.txt
 bool    alternateSymbolTable = false ; //false = '/' , true = '\'
 
-char Frequency[9]="144.3900"; //default frequency. 144.3900 for US, 144.8000 for Europe
+char Frequency[9]="145.6000"; //default frequency. 144.3900 for US, 144.8000 for Europe
 
-char    comment[50] = "LightAPRS 2.0"; // Max 50 char but shorter is better.
-char    StatusMessage[50] = "LightAPRS 2.0 by TA2NHP & TA2MUN";
+char    comment[50] = "Hello World"; // Max 50 char but shorter is better.
+char    StatusMessage[50] = "GO DUKES";
 //*****************************************************************************
 
 uint16_t  BeaconWait=10;  //seconds sleep for next beacon (HF or VHF). This is optimized value, do not change this if possible.
