@@ -558,7 +558,7 @@ void isMaxVelocity()  //gets new Velocity and checks it is greater than MaxVeloc
 void getVelocity()  //gets new Velocity from change in altitude devided by time
 {
   getAltitude();
-  Velocity = mooveMe();  //velocity = moving avg of 10 points calced by (change in position (vertical))/(change in time)
+  Velocity = mooveMe() - 3.0;  //velocity = moving avg of 10 points calced by (change in position (vertical))/(change in time)
 }
 
 void recordTime() {
@@ -796,7 +796,7 @@ bool failsafe1() {
 }
 
 bool failsafe2() {
-  if (millis() < (launchTime + 200000))//remember number is in MILISECONDS (200000 = 200 sec)
+  if (millis() > (launchTime + 200000))//remember number is in MILISECONDS (200000 = 200 sec)
   {
     failsafed2 = true;
     return true;
